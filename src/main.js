@@ -1,6 +1,5 @@
-from pathlib import Path
+import { createClient } from "@supabase/supabase-js";
 
-code = r'''import { createClient } from "@supabase/supabase-js";
 import "./style.css";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
