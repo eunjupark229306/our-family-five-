@@ -145,6 +145,7 @@ async function renderHome() {
 <p class="home-note">
   우리 가족의 소중한 기록을 한곳에 모아요 ♡
 </p>
+</main>`;
 
   document.querySelector("#logout").addEventListener("click", async () => {
     await supabase.auth.signOut();
