@@ -131,16 +131,20 @@ async function renderHome() {
         </div>
         <button id="logout" class="soft-button">로그아웃</button>
       </header>
-      <section class="menu-grid">
-        ${sections.map(([icon, title, desc]) => `
-          <button class="menu-card" data-section="${esc(title)}">
-            <span class="menu-icon">${icon}</span>
-            <strong>${esc(title)}</strong>
-            <small>${esc(desc)}</small>
-          </button>`).join("")}
-      </section>
-      <p class="home-note">우리 가족의 기록은 로그인한 계정의 클라우드에 안전하게 저장돼.</p>
-    </main>`;
+<section class="menu-grid">
+  ${sections.map(([icon, title, desc], index) => `
+    <button class="menu-card menu-card-${index + 1}" data-section="${esc(title)}">
+      <span class="menu-icon">${icon}</span>
+      <strong>${esc(title)}</strong>
+      <small>${esc(desc)}</small>
+      <span class="menu-arrow">→</span>
+    </button>
+  `).join("")}
+</section>
+
+<p class="home-note">
+  우리 가족의 소중한 기록을 한곳에 모아요 ♡
+</p>
 
   document.querySelector("#logout").addEventListener("click", async () => {
     await supabase.auth.signOut();
