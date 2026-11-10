@@ -388,7 +388,7 @@ async function start() {
 
 // ===== 삼형제 성장 기록 화면 =====
 
-async function openChildrenSettings() {
+async function openChildrenGrowth() {
   const settings = await loadFamilySettings();
 
   if (!settings) {
@@ -505,7 +505,7 @@ async function openGrowthDetail(child, defaults) {
       </main>
     `;
 
-    document.querySelector("#growthBack").onclick = openChildrenSettings;
+    document.querySelector("#growthBack").onclick = openChildrenGrowth;
 
     document.querySelector("#growthForm").onsubmit = async event => {
       event.preventDefault();
