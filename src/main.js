@@ -464,6 +464,61 @@ async function openGrowthDetail(child, defaults) {
     }];
   }
 
+    function makeGrowthChart(field, unit, title) {
+    const items = [...records]
+      .filter(r => r.date && Number(r[field]) > 0)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (items.length < 2) {
+      return `
+        <div class="growth-empty">
+          <div style="font-size:28px">🌱</div>
+          <p>기록이 2개 이상 쌓이면</p>
+          <p>${title} 그래프가 나타나!</p>
+        </div>
+      `;
+    }
+
+    const values = items.map(r => Number(r[field]));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = Math.max(max - min, 1);
+    const width = 320;
+    const height = 145;
+    const points = values.map((value, index) => {
+      const x = 20 + index * (280 / (values.length - 1));
+      const y = 15 + (max - value) / range * 95;
+      return `${x},${y}`;
+    });
+
+    return `
+      <div style="overflow-x:auto">
+        <svg viewBox="0 0 320 165"
+          style="width:100%;min-width:260px">
+          <polyline
+            points="${points.join(" ")}"
+            fill="none"
+            stroke="#69b99b"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"/>
+          ${items.map((item, index) => {
+            const [x, y] = points[index].split(",");
+            return `
+              <circle cx="${x}" cy="${y}" r="5"
+                fill="#69b99b" stroke="white" stroke-width="2"/>
+              <text x="${x}" y="${Number(y) - 12}"
+                text-anchor="middle" font-size="10"
+                fill="#555">${item[field]}${unit}</text>
+              <text x="${x}" y="135"
+                text-anchor="middle" font-size="9"
+                fill="#888">${item.date.slice(5)}</text>
+            `;
+          }).join("")}
+        </svg>
+      </div>
+    `;
+  }
   function showRecords() {
     const sorted = [...records].sort((a, b) =>
       (b.date || "").localeCompare(a.date || "")
@@ -493,15 +548,25 @@ async function openGrowthDetail(child, defaults) {
           </form>
         </section>
 
-        <section class="card">
-          <h2>📈 성장 기록 모아보기</h2>
-          ${sorted.map(record => `
-            <div class="growth-record">
-              <strong>${record.date || "첫 기준 기록 · 날짜 미정"}</strong>
-              <p>키 ${record.height}cm　몸무게 ${record.weight}kg</p>
-            </div>
-          `).join("")}
-        </section>
+<section class="card">
+  <h2>📏 키 성장 그래프</h2>
+  ${makeGrowthChart("height", "cm", "키")}
+</section>
+
+<section class="card">
+  <h2>⚖️ 몸무게 변화 그래프</h2>
+  ${makeGrowthChart("weight", "kg", "몸무게")}
+</section>
+
+<section class="card">
+  <h2>📈 성장 기록 모아보기</h2>
+  ${sorted.map(record => `
+    <div class="growth-record">
+      <strong>${record.date || "첫 기준 기록 · 날짜 미정"}</strong>
+      <p>키 ${record.height}cm　몸무게 ${record.weight}kg</p>
+    </div>
+  `).join("")}
+</section>
       </main>
     `;
 
