@@ -96,3 +96,12 @@ textarea { width: 100%; min-height: 180px; resize: vertical; padding: 15px; bord
     font-size: 36px;
   }
 }
+
+.brothers-home-image {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  margin: 0 auto 20px;
+  border-radius: 24px;
+}
