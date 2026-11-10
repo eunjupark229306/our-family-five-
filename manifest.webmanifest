@@ -1,9 +1,0 @@
-{
-  "name": "우리집 다섯식구",
-  "short_name": "우리집",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#fffaf7",
-  "theme_color": "#fffaf7",
-  "description": "우리 가족의 식단과 생활을 함께 관리하는 앱"
-}
