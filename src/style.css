@@ -26,3 +26,73 @@ h1 span, .topbar h1 span { color: #d99b91; }
 textarea { width: 100%; min-height: 180px; resize: vertical; padding: 15px; border: 1px solid #eadfd9; border-radius: 16px; background: white; outline-color: #d99b91; }
 .full { width: 100%; margin-top: 14px; }
 @media (max-width: 380px) { .shell { width: min(100% - 26px, 680px); } .tile { padding: 14px; } }
+
+/* 큰 아이콘 메뉴 디자인 복구 */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 30px;
+}
+
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 155px;
+  padding: 22px 18px;
+  border: 1px solid #f1e6e0;
+  border-radius: 24px;
+  background: #ffffff;
+  color: #34312f;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 5px 18px rgba(100, 70, 50, 0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 9px 24px rgba(100, 70, 50, 0.10);
+}
+
+.menu-icon {
+  display: block;
+  font-size: 42px;
+  line-height: 1;
+  margin-bottom: 18px;
+}
+
+.menu-card strong {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 7px;
+}
+
+.menu-card small {
+  font-size: 12px;
+  color: #99908a;
+}
+
+.home-note {
+  margin-top: 24px;
+  color: #aaa09a;
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 380px) {
+  .menu-grid {
+    gap: 10px;
+  }
+
+  .menu-card {
+    min-height: 140px;
+    padding: 16px 12px;
+  }
+
+  .menu-icon {
+    font-size: 36px;
+  }
+}
