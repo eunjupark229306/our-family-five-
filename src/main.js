@@ -118,11 +118,16 @@ async function loadFamilySettings() {
 async function renderHome() {
   app.innerHTML = `
     <main class="shell">
-      <header class="topbar">
-        <div>
-          <div class="eyebrow">OUR FAMILY SPACE</div>
-          <h1>우리집 다섯식구</h1>
-          <p>오늘도 우리 가족답게, 건강하고 행복하게</p>
+     <header class="topbar">
+  <img
+    src="${brothersImage}"
+    alt="우리 삼형제"
+    class="brothers-home-image"
+  />
+  <div>
+    <div class="eyebrow">OUR FAMILY SPACE</div>
+    <h1>우리집 다섯식구</h1>
+    <p>오늘도 우리 가족답게, 건강하고 행복하게</p>
         </div>
         <button id="logout" class="soft-button">로그아웃</button>
       </header>
