@@ -386,4 +386,164 @@ async function start() {
   });
 }
 
+// ===== 삼형제 성장 기록 화면 =====
+
+async function openChildrenSettings() {
+  const settings = await loadFamilySettings();
+
+  if (!settings) {
+    alert("아이들 정보를 불러오지 못했어요.");
+    return;
+  }
+
+  const children = settings.children || [
+    { id: "eden", name: "이든이" },
+    { id: "gaon", name: "가온이" },
+    { id: "gyeoun", name: "겨운이" }
+  ];
+
+  const defaults = {
+    eden: { height: 110, weight: 18 },
+    gaon: { height: 95, weight: 14.7 },
+    gyeoun: { height: 87, weight: 12 }
+  };
+
+  app.innerHTML = `
+    <main class="shell">
+      <button class="back-button" id="growthBack">← 홈으로</button>
+      <header class="page-header">
+        <div class="eyebrow">OUR FAMILY GROWTH</div>
+        <h1>🌱 우리 삼형제 쑥쑥 기록</h1>
+        <p>아이를 선택해서 성장 기록을 확인해 봐!</p>
+      </header>
+      <section class="menu-grid" id="growthChildren">
+        ${children.map(child => `
+          <button class="menu-card" data-growth-id="${child.id}">
+            <span class="menu-icon">🌱</span>
+            <strong>${child.name}</strong>
+            <small>성장 기록 보기 →</small>
+          </button>
+        `).join("")}
+      </section>
+    </main>
+  `;
+
+  document.querySelector("#growthBack").onclick = renderHome;
+
+  document.querySelectorAll("[data-growth-id]").forEach(button => {
+    button.onclick = () => openGrowthDetail(
+      children.find(child => child.id === button.dataset.growthId),
+      defaults
+    );
+  });
+}
+
+async function openGrowthDetail(child, defaults) {
+  const key = "growth-" + child.id;
+
+  const { data, error } = await supabase
+    .from("family_data")
+    .select("value")
+    .eq("user_id", currentUser.id)
+    .eq("key", key)
+    .maybeSingle();
+
+  if (error) {
+    alert("성장 기록을 불러오지 못했어요.");
+    return;
+  }
+
+  let records = data?.value?.records || [];
+
+  if (records.length === 0 && defaults[child.id]) {
+    records = [{
+      date: "",
+      height: defaults[child.id].height,
+      weight: defaults[child.id].weight,
+      baseline: true
+    }];
+  }
+
+  function showRecords() {
+    const sorted = [...records].sort((a, b) =>
+      (b.date || "").localeCompare(a.date || "")
+    );
+
+    app.innerHTML = `
+      <main class="shell">
+        <button class="back-button" id="growthBack">← 아이 선택</button>
+        <header class="page-header">
+          <div class="eyebrow">MY GROWTH RECORD</div>
+          <h1>🌱 ${child.name}의 성장 기록</h1>
+          <p>차곡차곡 기록하면서 변화를 살펴보자!</p>
+        </header>
+
+        <section class="card">
+          <h2>새로운 성장 기록</h2>
+          <form id="growthForm">
+            <label>측정 날짜</label>
+            <input name="date" type="date" required />
+            <label>키 (cm)</label>
+            <input name="height" type="number" step="0.1"
+              min="30" max="220" required placeholder="예: 110" />
+            <label>몸무게 (kg)</label>
+            <input name="weight" type="number" step="0.1"
+              min="1" max="150" required placeholder="예: 18" />
+            <button class="primary-button" type="submit">기록 저장하기 ❤️</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>📈 성장 기록 모아보기</h2>
+          ${sorted.map(record => `
+            <div class="growth-record">
+              <strong>${record.date || "첫 기준 기록 · 날짜 미정"}</strong>
+              <p>키 ${record.height}cm　몸무게 ${record.weight}kg</p>
+            </div>
+          `).join("")}
+        </section>
+      </main>
+    `;
+
+    document.querySelector("#growthBack").onclick = openChildrenSettings;
+
+    document.querySelector("#growthForm").onsubmit = async event => {
+      event.preventDefault();
+
+      const form = new FormData(event.target);
+      const newRecord = {
+        date: form.get("date"),
+        height: Number(form.get("height")),
+        weight: Number(form.get("weight"))
+      };
+
+      const updated = records.filter(record =>
+        record.date !== newRecord.date
+      );
+
+      updated.push(newRecord);
+
+      const { error } = await supabase
+        .from("family_data")
+        .upsert({
+          user_id: currentUser.id,
+          key,
+          value: { records: updated },
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        alert("저장하지 못했어요: " + error.message);
+        return;
+      }
+
+      records = updated;
+      alert("성장 기록을 클라우드에 저장했어요! ❤️");
+      showRecords();
+    };
+  }
+
+  showRecords();
+}
+
 start();
