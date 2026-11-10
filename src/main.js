@@ -158,6 +158,7 @@ async function renderHome() {
 async function openSection(title) {
   if (title === "식단 & 급식표") return openMealPlan();
   if (title === "아이들 성장") return openChildrenGrowth();
+  if (title === "장보기 & 냉장고") return openShoppingFridge();
 
   const data = await loadSection(title);
   if (data === undefined) return;
@@ -626,6 +627,161 @@ async function openGrowthDetail(child, defaults) {
   }
 
   showRecords();
+}
+
+async function openShoppingFridge() {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    alert("로그인이 필요해요.");
+    return;
+  }
+
+  const key = "shopping-fridge";
+
+  const { data, error } = await supabase
+    .from("family_data")
+    .select("value")
+    .eq("user_id", user.id)
+    .eq("key", key)
+    .maybeSingle();
+
+  if (error) {
+    alert("데이터를 불러오지 못했어요: " + error.message);
+    return;
+  }
+
+  let items = data?.value || { shopping: [], fridge: [] };
+
+  function escapeText(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+  }
+
+  async function saveItems() {
+    const { error } = await supabase
+      .from("family_data")
+      .upsert({
+        user_id: user.id,
+        key,
+        value: items,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) {
+      alert("저장하지 못했어요: " + error.message);
+      return false;
+    }
+
+    return true;
+  }
+
+  function render() {
+    app.innerHTML = `
+      <main class="shell">
+        <button class="back-button" id="shoppingBack">← 홈으로</button>
+
+        <header class="page-header">
+          <div class="eyebrow">OUR FAMILY KITCHEN</div>
+          <h1>🛒 장보기 & 냉장고</h1>
+          <p>우리 가족의 식재료를 한곳에서 관리해요.</p>
+        </header>
+
+        <section class="card">
+          <h2>🛒 장보기 목록</h2>
+          <form id="shoppingForm">
+            <input id="shoppingName" placeholder="살 물건을 입력해 줘" required />
+            <button class="primary-button" type="submit">+ 장보기 추가</button>
+          </form>
+
+          <div id="shoppingList">
+            ${items.shopping.map((item, index) => `
+              <div class="growth-record">
+                <label>
+                  <input type="checkbox" data-check-shopping="${index}"
+                    ${item.done ? "checked" : ""}>
+                  <span style="${item.done ? "text-decoration:line-through;color:#999" : ""}">
+                    ${escapeText(item.name)}
+                  </span>
+                </label>
+                <button class="soft-button" data-delete-shopping="${index}">삭제</button>
+              </div>
+            `).join("") || "<p>아직 장보기 목록이 없어요.</p>"}
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>🧊 냉장고 식재료</h2>
+          <form id="fridgeForm">
+            <input id="fridgeName" placeholder="식재료 이름" required />
+            <label for="fridgeExpiry">유통기한</label>
+            <input id="fridgeExpiry" type="date" />
+            <button class="primary-button" type="submit">+ 식재료 등록</button>
+          </form>
+
+          <div id="fridgeList">
+            ${items.fridge.map((item, index) => `
+              <div class="growth-record">
+                <strong>${escapeText(item.name)}</strong>
+                <p>유통기한: ${escapeText(item.expiry || "미입력")}</p>
+                <button class="soft-button" data-delete-fridge="${index}">삭제</button>
+              </div>
+            `).join("") || "<p>등록된 식재료가 없어요.</p>"}
+          </div>
+        </section>
+      </main>
+    `;
+
+    document.querySelector("#shoppingBack").onclick = renderHome;
+
+    document.querySelector("#shoppingForm").onsubmit = async event => {
+      event.preventDefault();
+      const name = document.querySelector("#shoppingName").value.trim();
+      if (!name) return;
+
+      items.shopping.push({ name, done: false });
+      if (await saveItems()) render();
+    };
+
+    document.querySelector("#fridgeForm").onsubmit = async event => {
+      event.preventDefault();
+      const name = document.querySelector("#fridgeName").value.trim();
+      const expiry = document.querySelector("#fridgeExpiry").value;
+      if (!name) return;
+
+      items.fridge.push({ name, expiry });
+      if (await saveItems()) render();
+    };
+
+    document.querySelectorAll("[data-check-shopping]").forEach(button => {
+      button.onchange = async () => {
+        const index = Number(button.dataset.checkShopping);
+        items.shopping[index].done = button.checked;
+        if (await saveItems()) render();
+      };
+    });
+
+    document.querySelectorAll("[data-delete-shopping]").forEach(button => {
+      button.onclick = async () => {
+        items.shopping.splice(Number(button.dataset.deleteShopping), 1);
+        if (await saveItems()) render();
+      };
+    });
+
+    document.querySelectorAll("[data-delete-fridge]").forEach(button => {
+      button.onclick = async () => {
+        items.fridge.splice(Number(button.dataset.deleteFridge), 1);
+        if (await saveItems()) render();
+      };
+    });
+  }
+
+  render();
 }
 
 start();
