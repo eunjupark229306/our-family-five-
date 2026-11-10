@@ -105,3 +105,71 @@ textarea { width: 100%; min-height: 180px; resize: vertical; padding: 15px; bord
   margin: 0 auto 20px;
   border-radius: 24px;
 }
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.menu-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 145px;
+  padding: 20px;
+  border: 1px solid rgba(100, 120, 100, 0.10);
+  border-radius: 22px;
+  background: #fffdf9;
+  text-align: left;
+  box-shadow: 0 5px 18px rgba(60, 70, 50, 0.05);
+  transition: transform 0.2s ease;
+}
+
+.menu-card:active {
+  transform: scale(0.97);
+}
+
+.menu-icon {
+  font-size: 29px;
+  margin-bottom: 13px;
+}
+
+.menu-card strong {
+  font-size: 16px;
+  color: #39463e;
+}
+
+.menu-card small {
+  margin-top: 6px;
+  color: #929991;
+  font-size: 12px;
+}
+
+.menu-arrow {
+  position: absolute;
+  right: 17px;
+  bottom: 17px;
+  color: #9ba99b;
+  font-size: 18px;
+}
+
+.menu-card-1 { background: #fff5ed; }
+.menu-card-2 { background: #f1f7ed; }
+.menu-card-3 { background: #edf6f3; }
+.menu-card-4 { background: #f3f0fa; }
+.menu-card-5 { background: #fff6e9; }
+.menu-card-6 { background: #f0f3f8; }
+
+@media (max-width: 360px) {
+  .menu-grid {
+    gap: 10px;
+  }
+
+  .menu-card {
+    padding: 15px;
+    min-height: 135px;
+  }
+}
