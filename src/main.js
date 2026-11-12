@@ -303,6 +303,7 @@ async function openMealPlan(selectedInstitutionId = null) {
           <textarea id="meal-note" rows="3" placeholder="알레르기, 특별식 등 메모">${esc(saved?.note || "")}</textarea>
         </label>
         <button id="save-meal" class="primary-button">급식표 저장하기</button>
+        <button id="open-meal-calendar" class="soft-button">📅 날짜별 식단 달력</button>
         ${legacy?.photo ? `
           <div class="legacy-box">
             <h3>이전에 올린 급식표 사진</h3>
@@ -317,6 +318,9 @@ async function openMealPlan(selectedInstitutionId = null) {
   document.querySelector("#back").addEventListener("click", renderHome);
   document.querySelector("#institution-select").addEventListener("change", event => openMealPlan(event.target.value));
   document.querySelector("#manage-children").addEventListener("click", openChildrenSettings);
+  document.querySelector("#open-meal-calendar").addEventListener("click", () => {
+  openMealCalendar(institution.id);
+});
 
   document.querySelector("#save-meal").addEventListener("click", async () => {
     const file = document.querySelector("#meal-photo").files[0];
@@ -357,6 +361,134 @@ async function openMealPlan(selectedInstitutionId = null) {
       }
     });
   }
+}
+
+
+async function openMealCalendar(institutionId) {
+  const today = new Date();
+  let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  let selectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  let records = {};
+
+  async function loadMonth() {
+    const key = `meal-calendar-${institutionId}-${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}`;
+    const data = await loadSection(key);
+    if (data === undefined) return false;
+    records = data?.records || {};
+    return true;
+  }
+
+  function render() {
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    let days = "";
+    for (let i = 0; i < firstDay; i++) {
+      days += `<div></div>`;
+    }
+
+    for (let day = 1; day <= lastDate; day++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const hasMeal = records[dateKey] &&
+        (records[dateKey].breakfast || records[dateKey].lunch || records[dateKey].dinner);
+      const selected = dateKey === selectedDate;
+
+      days += `
+        <button type="button" data-meal-day="${dateKey}"
+          style="min-height:62px; border:1px solid ${selected ? "#8da99a" : "#eee"}; border-radius:12px; background:${selected ? "#e8f1eb" : "#fff"}; color:#444; padding:6px;">
+          <strong>${day}</strong>
+          <div style="font-size:11px; color:#789b83;">${hasMeal ? "● 기록 있음" : ""}</div>
+        </button>`;
+    }
+
+    const meal = records[selectedDate] || {};
+
+    app.innerHTML = `
+      <main class="shell">
+        <button class="back-button" id="calendar-back">← 급식표로</button>
+        <section class="card">
+          <div class="eyebrow">OUR MEAL CALENDAR</div>
+          <h2>날짜별 식단 달력</h2>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin:20px 0;">
+            <button type="button" id="prev-month" class="soft-button">← 이전 달</button>
+            <strong>${year}년 ${month + 1}월</strong>
+            <button type="button" id="next-month" class="soft-button">다음 달 →</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:5px; text-align:center; margin-bottom:8px;">
+            ${["일", "월", "화", "수", "목", "금", "토"].map(day => `<strong>${day}</strong>`).join("")}
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px;">
+            ${days}
+          </div>
+
+          <div style="border-top:1px solid #eee; margin-top:22px; padding-top:18px;">
+            <h3>${selectedDate} 식단 입력</h3>
+
+            <label>🌅 아침
+              <textarea id="meal-breakfast" rows="2" placeholder="아침 메뉴를 입력해줘">${esc(meal.breakfast || "")}</textarea>
+            </label>
+
+            <label>☀️ 점심
+              <textarea id="meal-lunch" rows="2" placeholder="점심 메뉴를 입력해줘">${esc(meal.lunch || "")}</textarea>
+            </label>
+
+            <label>🌙 저녁
+              <textarea id="meal-dinner" rows="2" placeholder="저녁 메뉴를 입력해줘">${esc(meal.dinner || "")}</textarea>
+            </label>
+
+            <button id="save-calendar-meal" class="primary-button">이 날짜 식단 저장하기</button>
+          </div>
+        </section>
+      </main>`;
+
+    document.querySelector("#calendar-back").onclick = () => openMealPlan(institutionId);
+
+    document.querySelector("#prev-month").onclick = async () => {
+      viewDate = new Date(year, month - 1, 1);
+      selectedDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}-01`;
+      if (await loadMonth()) render();
+    };
+
+    document.querySelector("#next-month").onclick = async () => {
+      viewDate = new Date(year, month + 1, 1);
+      selectedDate = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, "0")}-01`;
+      if (await loadMonth()) render();
+    };
+
+    document.querySelectorAll("[data-meal-day]").forEach(button => {
+      button.onclick = () => {
+        selectedDate = button.dataset.mealDay;
+        render();
+      };
+    });
+
+    document.querySelector("#save-calendar-meal").onclick = async () => {
+      const breakfast = document.querySelector("#meal-breakfast").value.trim();
+      const lunch = document.querySelector("#meal-lunch").value.trim();
+      const dinner = document.querySelector("#meal-dinner").value.trim();
+
+      if (!breakfast && !lunch && !dinner) {
+        delete records[selectedDate];
+      } else {
+        records[selectedDate] = { breakfast, lunch, dinner };
+      }
+
+      const key = `meal-calendar-${institutionId}-${year}-${String(month + 1).padStart(2, "0")}`;
+      const ok = await saveSection(key, { records });
+
+      if (ok) {
+        showMessage("날짜별 식단을 저장했어! ❤️");
+        render();
+      }
+    };
+  }
+
+  if (await loadMonth()) render();
 }
 
 function compressImage(file) {
