@@ -473,3 +473,32 @@ button.ghost, .ghost {
   font-size: 13px;
   text-align: center;
 }
+
+/* 급식표 사진 업로드 */
+.meal-upload-label,
+.meal-note-label {
+  display: block;
+  margin-top: 16px;
+  color: #6f6482;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.meal-photo-input {
+  display: block;
+  margin-top: 9px;
+  padding: 12px;
+  min-height: auto;
+  border: 1px dashed #cdbfe2;
+  border-radius: 14px;
+  background: #faf8fd;
+  font-size: 12px;
+}
+
+.meal-note-label textarea {
+  display: block;
+  margin-top: 9px;
+  min-height: 80px;
+  resize: vertical;
+  box-sizing: border-box;
+}
