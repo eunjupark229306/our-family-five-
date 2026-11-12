@@ -391,3 +391,40 @@ button.ghost, .ghost {
   color: #958ba5;
   font-size: 12px;
 }
+
+/* 정가네 성장 상세 화면 */
+.growth-empty {
+  padding: 22px 15px;
+  border-radius: 18px;
+  background: #f8f5fc;
+  color: #898098;
+  text-align: center;
+}
+
+.growth-empty p {
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+.growth-record {
+  margin-top: 10px;
+  padding: 15px;
+  border: 1px solid #eee8f5;
+  border-radius: 17px;
+  background: #fff;
+}
+
+.growth-record strong {
+  color: #514766;
+  font-size: 14px;
+}
+
+.growth-record p {
+  margin: 7px 0 0;
+  color: #827b8e;
+  font-size: 13px;
+}
+
+#growthForm input {
+  margin-bottom: 12px;
+}
