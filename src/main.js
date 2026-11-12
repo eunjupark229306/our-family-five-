@@ -56,8 +56,8 @@ function renderLogin() {
   app.innerHTML = `
     <main class="shell">
       <section class="card login-card">
-        <div class="eyebrow">OUR FAMILY SPACE</div>
-        <h1>우리집 다섯식구</h1>
+       <div class="eyebrow">JEONG FAMILY</div>
+<h1>정가네</h1>
         <p>우리 가족의 일상과 기록을 한곳에 모아요.</p>
         <button id="google-login" class="primary-button">Google 계정으로 시작하기</button>
       </section>
@@ -131,7 +131,9 @@ async function renderHome() {
     <h1>우리집 다섯식구</h1>
     <p>오늘도 우리 가족답게, 건강하고 행복하게</p>
         </div>
-        <button id="logout" class="soft-button">로그아웃</button>
+       <button id="logout" class="logout-button">
+  로그아웃
+</button>
       </header>
 <section class="menu-grid">
   ${sections.map(([icon, title, desc], index) => `
@@ -1415,3 +1417,20 @@ async function openHotDeals() {
 
 
 start();
+
+/* 정가네 로그아웃 버튼 */
+.logout-button {
+  flex-shrink: 0;
+  border: 1px solid #e9e2f2;
+  border-radius: 20px;
+  background: #fff;
+  color: #9585b3;
+  padding: 8px 13px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 3px 10px rgba(100, 80, 130, 0.06);
+}
+
+.logout-button:hover {
+  background: #f5f1fb;
+}
