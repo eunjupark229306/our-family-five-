@@ -11,14 +11,16 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 const app = document.querySelector("#app");
 let currentUser = null;
 
+
 const sections = [
   ["🍚", "식단 & 급식표", "이번 달 식단과 급식표"],
   ["🛒", "장보기 / 냉장고 재료", "재료와 장보기 목록"],
   ["📏", "아이들 성장", "아이들의 키와 몸무게"],
-  ["📅", "가족 일정", "우리 가족의 중요한 일정"],
+  ["🔥", "핫딜정리", "우리 가족 알뜰 쇼핑 기록"],
   ["💰", "가계부", "가족의 수입과 지출"],
   ["🏡", "집안 관리", "우리 집 할 일과 관리"]
 ];
+
 
 const institutionTypes = ["어린이집", "유치원", "초등학교", "중학교", "고등학교", "기타"];
 
@@ -160,6 +162,7 @@ async function openSection(title) {
   if (title === "아이들 성장") return openChildrenGrowth();
   if (title === "장보기 / 냉장고 재료") return openShoppingFridge();
   if (title === "집안 관리") return openHouseholdManagement();
+  if (title === "핫딜정리") return openHotDeals();
 
   const data = await loadSection(title);
   if (data === undefined) return;
@@ -1079,6 +1082,199 @@ async function openHouseholdManagement() {
         tasks.splice(Number(button.dataset.houseDelete), 1);
 
         if (await saveTasks()) render();
+      };
+    });
+  }
+
+  render();
+}
+
+
+async function openHotDeals() {
+  const key = "hot-deals";
+  const data = await loadSection(key);
+  if (data === undefined) return;
+
+  let records = data?.records || [];
+
+  function calculate(price, quantity, unit) {
+    if (unit === "kg") return {
+      value: Math.round(price / (quantity * 10)),
+      label: "100g당"
+    };
+    if (unit === "g") return {
+      value: Math.round(price / quantity * 100),
+      label: "100g당"
+    };
+    if (unit === "L") return {
+      value: Math.round(price / (quantity * 10)),
+      label: "100ml당"
+    };
+    if (unit === "ml") return {
+      value: Math.round(price / quantity * 100),
+      label: "100ml당"
+    };
+
+    return {
+      value: Math.round(price / quantity),
+      label: `1${unit}당`
+    };
+  }
+
+  function render() {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+    app.innerHTML = `
+      <main class="shell">
+        <button class="back-button" id="hot-deals-back">← 홈으로</button>
+
+        <section class="card">
+          <div class="eyebrow">OUR FAMILY HOT DEALS</div>
+          <h2>🔥 핫딜정리</h2>
+          <p>우리 가족 알뜰 쇼핑 기록</p>
+
+          <form id="hot-deal-form">
+            <label>쇼핑몰
+              <input id="deal-shop" placeholder="예: G마켓, 쿠팡, 네이버" required>
+            </label>
+
+            <label>상품명
+              <input id="deal-name" placeholder="예: 고춧가루" required>
+            </label>
+
+            <label>구매 가격 (원)
+              <input id="deal-price" type="number" min="0" step="1" placeholder="15000" required>
+            </label>
+
+            <label>총 수량
+              <input id="deal-quantity" type="number" min="0.01" step="any" placeholder="예: 1" required>
+            </label>
+
+            <label>단위
+              <select id="deal-unit">
+                <option value="g">g</option>
+                <option value="kg">kg</option>
+                <option value="ml">ml</option>
+                <option value="L">L</option>
+                <option value="개">개</option>
+                <option value="팩">팩</option>
+                <option value="봉">봉</option>
+                <option value="롤">롤</option>
+                <option value="세트">세트</option>
+              </select>
+            </label>
+
+            <p style="font-size:12px; color:#888;">
+              묶음 상품은 전체 용량이나 전체 개수를 입력해 줘.
+              예: 2L 생수 6병은 12L
+            </p>
+
+            <label>구매일
+              <input id="deal-date" type="date" value="${today}" required>
+            </label>
+
+            <label>메모
+              <textarea id="deal-memo" rows="2" placeholder="쿠폰, 할인 정보 등을 기록해 줘."></textarea>
+            </label>
+
+            <div id="deal-unit-preview" style="padding:14px; background:#e8f2ec; border-radius:12px; margin:14px 0;">
+              가격을 입력하면 단위당 가격이 계산돼.
+            </div>
+
+            <button type="submit" class="primary-button">+ 핫딜 기록 저장하기</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>🛍️ 구매 기록</h2>
+          <p>총 ${records.length}개</p>
+
+          ${records.map((item, index) => `
+            <div class="growth-record" style="margin-bottom:12px;">
+              <strong>${esc(item.shop)} · ${esc(item.name)}</strong>
+              <p>구매 가격: ${Number(item.price).toLocaleString("ko-KR")}원</p>
+              <p>총 수량: ${Number(item.quantity).toLocaleString("ko-KR")}${esc(item.unit)}</p>
+              <p>구매일: ${esc(item.date)}</p>
+              <p style="color:#668b73; font-weight:bold;">
+                ${esc(item.unitLabel)} ${Number(item.unitPrice).toLocaleString("ko-KR")}원
+              </p>
+              ${item.memo ? `<p>메모: ${esc(item.memo)}</p>` : ""}
+              <button type="button" class="soft-button" data-delete-deal="${index}">삭제</button>
+            </div>
+          `).join("") || "<p>아직 등록된 구매 기록이 없어. 첫 기록을 남겨봐! 😊</p>"}
+        </section>
+      </main>
+    `;
+
+    document.querySelector("#hot-deals-back").onclick = renderHome;
+
+    const priceInput = document.querySelector("#deal-price");
+    const quantityInput = document.querySelector("#deal-quantity");
+    const unitInput = document.querySelector("#deal-unit");
+    const preview = document.querySelector("#deal-unit-preview");
+
+    function updatePreview() {
+      const price = Number(priceInput.value);
+      const quantity = Number(quantityInput.value);
+      const unit = unitInput.value;
+
+      if (priceInput.value === "" || quantityInput.value === "" || quantity <= 0 || price < 0) {
+        preview.textContent = "가격과 수량을 입력하면 자동 계산돼.";
+        return;
+      }
+
+      const result = calculate(price, quantity, unit);
+      preview.textContent = `${result.label} ${result.value.toLocaleString("ko-KR")}원`;
+    }
+
+    priceInput.addEventListener("input", updatePreview);
+    quantityInput.addEventListener("input", updatePreview);
+    unitInput.addEventListener("change", updatePreview);
+
+    document.querySelector("#hot-deal-form").onsubmit = async event => {
+      event.preventDefault();
+
+      const shop = document.querySelector("#deal-shop").value.trim();
+      const name = document.querySelector("#deal-name").value.trim();
+      const price = Number(priceInput.value);
+      const quantity = Number(quantityInput.value);
+      const unit = unitInput.value;
+      const date = document.querySelector("#deal-date").value;
+      const memo = document.querySelector("#deal-memo").value.trim();
+
+      if (!shop || !name || !date || price < 0 || quantity <= 0 ||
+          priceInput.value === "" || quantityInput.value === "") {
+        return showMessage("상품 정보와 가격, 수량을 확인해 줘.");
+      }
+
+      const result = calculate(price, quantity, unit);
+
+      records.unshift({
+        shop,
+        name,
+        price,
+        quantity,
+        unit,
+        date,
+        unitPrice: result.value,
+        unitLabel: result.label,
+        memo
+      });
+
+      if (await saveSection(key, { records })) {
+        showMessage("핫딜 기록을 저장했어! ❤️");
+        render();
+      }
+    };
+
+    document.querySelectorAll("[data-delete-deal]").forEach(button => {
+      button.onclick = async () => {
+        records.splice(Number(button.dataset.deleteDeal), 1);
+        if (await saveSection(key, { records })) {
+          showMessage("구매 기록을 삭제했어.");
+          render();
+        }
       };
     });
   }
