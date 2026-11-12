@@ -678,7 +678,7 @@ async function openGrowthDetail(child, defaults) {
     const height = 145;
     const points = values.map((value, index) => {
       const x = 20 + index * (280 / (values.length - 1));
-      const y = 15 + (max - value) / range * 95;
+      const y = 35 + (max - value) / range * 70;
       return `${x},${y}`;
     });
 
