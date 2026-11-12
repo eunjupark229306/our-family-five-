@@ -173,6 +173,7 @@ async function openSection(title) {
   if (title === "장보기 / 냉장고 재료") return openShoppingFridge();
   if (title === "집안 관리") return openHouseholdManagement();
   if (title === "핫딜정리") return openHotDeals();
+  if (title === "가계부") return openBudget();
 
   const data = await loadSection(title);
   if (data === undefined) return;
@@ -1264,6 +1265,88 @@ async function openHouseholdManagement() {
   }
 
   render();
+}
+
+
+async function openBudget() {
+  if (!currentFamilyId) {
+    alert("가족 공간을 확인할 수 없어요.");
+    return;
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    alert("로그인이 필요해요.");
+    return;
+  }
+
+  const { data: settings, error: settingsError } = await supabase
+    .from("budget_settings")
+    .select("*")
+    .eq("family_id", currentFamilyId)
+    .maybeSingle();
+
+  if (settingsError) {
+    alert("가계부 설정을 불러오지 못했어요: " + settingsError.message);
+    return;
+  }
+
+  const { data: transactions, error: transactionError } = await supabase
+    .from("budget_transactions")
+    .select("*")
+    .eq("family_id", currentFamilyId)
+    .order("transaction_date", { ascending: false });
+
+  if (transactionError) {
+    alert("수입·지출 내역을 불러오지 못했어요: " + transactionError.message);
+    return;
+  }
+
+  const initialBalance = Number(settings?.initial_balance ?? 20144000);
+  const income = (transactions || [])
+    .filter(item => item.type === "income" && item.is_received)
+    .reduce((sum, item) => sum + Number(item.amount), 0);
+
+  const expense = (transactions || [])
+    .filter(item => item.type === "expense")
+    .reduce((sum, item) => sum + Number(item.amount), 0);
+
+  const balance = initialBalance + income - expense;
+
+  app.innerHTML = `
+    <main class="shell">
+      <button class="back-button" id="budgetBack">← 홈으로</button>
+
+      <header class="page-header">
+        <div class="eyebrow">JEONG FAMILY BUDGET</div>
+        <h1>💰 정가네 가계부</h1>
+        <p>2027년 우리 가족의 한 해 살림</p>
+      </header>
+
+      <section class="card">
+        <h2>우리 가족 현재 잔액</h2>
+        <h1>${balance.toLocaleString("ko-KR")}원</h1>
+        <p>초기 생활비 ${initialBalance.toLocaleString("ko-KR")}원</p>
+        <p>실제 수입 +${income.toLocaleString("ko-KR")}원</p>
+        <p>실제 지출 -${expense.toLocaleString("ko-KR")}원</p>
+      </section>
+
+      <section class="card">
+        <h2>📅 2027년 예산</h2>
+        <p>월 기본 예산 2,132,000원</p>
+        <p>연간 계획 예산 25,744,000원</p>
+        <p>비상금 월 적립 200,000원</p>
+      </section>
+
+      <section class="card">
+        <h2>💵 수입과 지출</h2>
+        <p>다음 단계에서 수당 등록과 지출 입력 기능을 추가할게.</p>
+      </section>
+    </main>
+  `;
+
+  document.querySelector("#budgetBack").onclick = renderHome;
 }
 
 
