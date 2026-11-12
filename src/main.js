@@ -892,7 +892,7 @@ async function openShoppingFridge() {
           </div>
         </section>
 
-        <section class="card">
+        <section class="card" id="fridgeSection">
           <h2>🧊 냉장고 식재료</h2>
           <form id="fridgeForm">
             <input id="fridgeName" placeholder="식재료 이름" required />
