@@ -297,8 +297,7 @@ async function openMealPlan() {
 
         ${mealData.map(({ institution, saved }) => `
           <div class="meal-institution-card"
-            data-institution-id="${esc(institution.id)}"
-            style="border:1px solid #eee; border-radius:16px; padding:16px; margin:20px 0;">
+  data-institution-id="${esc(institution.id)}">
 
             <h3>${esc(institution.name)}</h3>
             <p style="color:#888; font-size:13px;">${esc(institution.type)}</p>
