@@ -735,7 +735,7 @@ async function openGrowthDetail(child, defaults) {
             <label>몸무게 (kg)</label>
             <input name="weight" type="number" step="0.1"
               min="1" max="150" required placeholder="예: 18" />
-            <button class="primary-button" type="submit">기록 저장하기 ❤️</button>
+            <button class="primary" type="submit">기록 저장하기 ❤️</button>
           </form>
         </section>
 
