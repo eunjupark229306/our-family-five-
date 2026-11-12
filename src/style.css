@@ -173,3 +173,85 @@ textarea { width: 100%; min-height: 180px; resize: vertical; padding: 15px; bord
     min-height: 135px;
   }
 }
+
+/* JEONG FAMILY 새 디자인 */
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR", sans-serif;
+  color: #373541;
+  background: #faf9fd;
+}
+
+body {
+  background: #faf9fd;
+  color: #373541;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+input, select, textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 15px;
+  border: 1px solid #e9e4f0;
+  border-radius: 15px;
+  background: #fff;
+  color: #373541;
+  outline: none;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #c7b5e5;
+  box-shadow: 0 0 0 3px #c7b5e533;
+}
+
+button.primary, .primary {
+  border: 0;
+  border-radius: 15px;
+  background: #a995d0;
+  color: white;
+  min-height: 48px;
+  padding: 12px 20px;
+  font-weight: 700;
+  box-shadow: 0 5px 14px #a995d033;
+}
+
+button.ghost, .ghost {
+  border: 1px solid #e9e4f0;
+  border-radius: 13px;
+  background: white;
+  color: #777083;
+  padding: 10px 14px;
+}
+
+.card {
+  border: 1px solid #eeeaf3;
+  border-radius: 21px;
+  background: white;
+  padding: 18px;
+  box-shadow: 0 5px 18px #51436b0a;
+}
+
+.tab-menu button {
+  border: 1px solid #e9e4f0;
+  border-radius: 14px;
+  background: white;
+  color: #777083;
+  padding: 11px 13px;
+}
+
+@media (max-width: 380px) {
+  .shell {
+    width: calc(100% - 28px);
+  }
+}
