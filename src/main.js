@@ -159,6 +159,7 @@ async function openSection(title) {
   if (title === "식단 & 급식표") return openMealPlan();
   if (title === "아이들 성장") return openChildrenGrowth();
   if (title === "장보기 & 냉장고") return openShoppingFridge();
+  if (title === "집안 관리") return openHouseholdManagement();
 
   const data = await loadSection(title);
   if (data === undefined) return;
@@ -783,5 +784,144 @@ async function openShoppingFridge() {
 
   render();
 }
+
+
+async function openHouseholdManagement() {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    alert("로그인이 필요해요.");
+    return;
+  }
+
+  const key = "household-management";
+
+  const { data, error } = await supabase
+    .from("family_data")
+    .select("value")
+    .eq("user_id", user.id)
+    .eq("key", key)
+    .maybeSingle();
+
+  if (error) {
+    alert("집안일을 불러오지 못했어요: " + error.message);
+    return;
+  }
+
+  let tasks = data?.value?.tasks || [];
+
+  async function saveTasks() {
+    const { error } = await supabase
+      .from("family_data")
+      .upsert({
+        user_id: user.id,
+        key,
+        value: { tasks },
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) {
+      alert("저장하지 못했어요: " + error.message);
+      return false;
+    }
+
+    return true;
+  }
+
+  function render() {
+    app.innerHTML = `
+      <main class="shell">
+        <button class="back-button" id="houseBack">← 홈으로</button>
+
+        <header class="page-header">
+          <div class="eyebrow">OUR FAMILY HOME</div>
+          <h1>🏡 우리집 집안 관리</h1>
+          <p>오늘 할 일을 하나씩 정리해 봐요.</p>
+        </header>
+
+        <section class="card">
+          <h2>✨ 집안일 추가하기</h2>
+          <form id="houseForm">
+            <input
+              id="houseTask"
+              placeholder="예: 거실 청소하기"
+              required
+            />
+            <button class="primary-button" type="submit">
+              + 할 일 추가
+            </button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>🧹 우리집 할 일</h2>
+          <p id="houseProgress"></p>
+
+          <div id="houseTaskList">
+            ${tasks.map((task, index) => `
+              <div class="growth-record">
+                <label>
+                  <input
+                    type="checkbox"
+                    data-house-check="${index}"
+                    ${task.done ? "checked" : ""}
+                  />
+                  <span style="${task.done ? "text-decoration:line-through;color:#999" : ""}">
+                    ${esc(task.name)}
+                  </span>
+                </label>
+                <button
+                  class="soft-button"
+                  data-house-delete="${index}"
+                >삭제</button>
+              </div>
+            `).join("") || "<p>아직 등록된 집안일이 없어요. 하나 추가해 볼까요? ♡</p>"}
+          </div>
+        </section>
+      </main>
+    `;
+
+    const completed = tasks.filter(task => task.done).length;
+    document.querySelector("#houseProgress").textContent =
+      `전체 ${tasks.length}개 중 ${completed}개 완료했어요 ❤️`;
+
+    document.querySelector("#houseBack").onclick = renderHome;
+
+    document.querySelector("#houseForm").onsubmit = async event => {
+      event.preventDefault();
+
+      const name = document.querySelector("#houseTask").value.trim();
+      if (!name) return;
+
+      tasks.push({
+        id: Date.now().toString(),
+        name,
+        done: false
+      });
+
+      if (await saveTasks()) render();
+    };
+
+    document.querySelectorAll("[data-house-check]").forEach(input => {
+      input.onchange = async () => {
+        const index = Number(input.dataset.houseCheck);
+        tasks[index].done = input.checked;
+
+        if (await saveTasks()) render();
+      };
+    });
+
+    document.querySelectorAll("[data-house-delete]").forEach(button => {
+      button.onclick = async () => {
+        tasks.splice(Number(button.dataset.houseDelete), 1);
+
+        if (await saveTasks()) render();
+      };
+    });
+  }
+
+  render();
+}
+
 
 start();
