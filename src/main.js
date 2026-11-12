@@ -311,12 +311,12 @@ async function openMealPlan() {
               }
             </div>
 
-            <label>급식표 사진
-              <input type="file" data-meal-photo accept="image/*">
-            </label>
+           <label class="meal-upload-label">📷 급식표 사진
+  <input type="file" class="meal-photo-input" data-meal-photo accept="image/*">
+</label>
 
-            <label>메모
-              <textarea data-meal-note rows="2"
+<label class="meal-note-label">📝 메모
+  <textarea data-meal-note rows="2"
                 placeholder="알레르기, 특별식 등 메모">${esc(saved?.note || "")}</textarea>
             </label>
 
