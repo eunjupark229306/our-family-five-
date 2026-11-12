@@ -129,7 +129,7 @@ async function renderHome() {
   <div>
     <div class="eyebrow">OUR FAMILY SPACE</div>
     <h1>정가네</h1>
-    <p>오늘도 우리 가족답게, 건강하고 행복하게</p>
+    <p>우리 가족의 하루를 담는 작은 공간</p>
         </div>
        <button id="logout" class="logout-button">
   로그아웃
