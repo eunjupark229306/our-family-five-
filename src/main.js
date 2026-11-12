@@ -320,7 +320,7 @@ async function openMealPlan() {
                 placeholder="알레르기, 특별식 등 메모">${esc(saved?.note || "")}</textarea>
             </label>
 
-            <button type="button" data-save-meal class="primary-button">
+            <button type="button" data-save-meal class="primary">
               ${saved?.photo ? "급식표 사진 교체하기" : "급식표 사진 저장하기"}
             </button>
 
