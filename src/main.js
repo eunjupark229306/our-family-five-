@@ -158,7 +158,7 @@ async function renderHome() {
 async function openSection(title) {
   if (title === "식단 & 급식표") return openMealPlan();
   if (title === "아이들 성장") return openChildrenGrowth();
-  if (title === "장보기 & 냉장고") return openShoppingFridge();
+  if (title === "장보기 / 냉장고 재료") return openShoppingFridge();
   if (title === "집안 관리") return openHouseholdManagement();
 
   const data = await loadSection(title);
