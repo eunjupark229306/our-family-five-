@@ -113,7 +113,6 @@ async function loadSection(key) {
 
   return data?.value ?? null;
 }
-}
 
 async function loadFamilySettings() {
   const saved = await loadSection("아이들 프로필 설정");
