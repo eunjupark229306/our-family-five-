@@ -502,3 +502,42 @@ button.ghost, .ghost {
   resize: vertical;
   box-sizing: border-box;
 }
+
+/* 정가네 집안일 카드 */
+.house-task-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid #eee8f5;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(100, 80, 130, 0.05);
+}
+
+.house-task-card label {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
+  min-width: 0;
+  color: #514766;
+  font-size: 14px;
+}
+
+.house-task-card input[type="checkbox"] {
+  width: 19px;
+  min-width: 19px;
+  height: 19px;
+  min-height: 19px;
+  margin: 0;
+  padding: 0;
+  accent-color: #a995d0;
+  flex-shrink: 0;
+}
+
+.house-task-card button {
+  flex-shrink: 0;
+}
