@@ -1268,6 +1268,7 @@ async function openHouseholdManagement() {
 }
 
 
+
 async function openBudget() {
   if (!currentFamilyId) {
     alert("가족 공간을 확인할 수 없어요.");
@@ -1304,6 +1305,7 @@ async function openBudget() {
   }
 
   const initialBalance = Number(settings?.initial_balance ?? 20144000);
+
   const income = (transactions || [])
     .filter(item => item.type === "income" && item.is_received)
     .reduce((sum, item) => sum + Number(item.amount), 0);
@@ -1313,6 +1315,21 @@ async function openBudget() {
     .reduce((sum, item) => sum + Number(item.amount), 0);
 
   const balance = initialBalance + income - expense;
+
+  const today = new Date();
+  const todayString = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getDate()).padStart(2, "0")
+  ].join("-");
+
+  const pendingIncome = (transactions || []).filter(
+    item => item.type === "income" && !item.is_received
+  );
+
+  const receivedIncome = (transactions || []).filter(
+    item => item.type === "income" && item.is_received
+  );
 
   app.innerHTML = `
     <main class="shell">
@@ -1340,14 +1357,165 @@ async function openBudget() {
       </section>
 
       <section class="card">
-        <h2>💵 수입과 지출</h2>
-        <p>다음 단계에서 수당 등록과 지출 입력 기능을 추가할게.</p>
+        <h2>💵 수당 등록</h2>
+        <p>아동수당, 부모급여, 출산지원금 등 실제 받을 수당을 등록해 줘.</p>
+
+        <form id="incomeForm">
+          <label>수당 이름</label>
+          <input
+            id="incomeTitle"
+            type="text"
+            placeholder="예: 아동수당"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <label>예정 금액</label>
+          <input
+            id="incomeAmount"
+            type="number"
+            min="1"
+            placeholder="예: 300000"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <label>입금 예정일</label>
+          <input
+            id="incomeExpectedDate"
+            type="date"
+            value="${todayString}"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <label>메모 (선택)</label>
+          <input
+            id="incomeMemo"
+            type="text"
+            placeholder="예: 매월 지급"
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <button
+            type="submit"
+            style="width:100%; padding:14px; border:0; border-radius:12px; background:#8c78ad; color:white; font-size:15px;"
+          >
+            수당 등록하기
+          </button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>⏳ 입금 대기 중인 수당</h2>
+        ${
+          pendingIncome.length
+            ? pendingIncome.map(item => `
+              <div style="padding:14px 0; border-bottom:1px solid #eee;">
+                <strong>${esc(item.title)}</strong>
+                <p>${Number(item.amount).toLocaleString("ko-KR")}원</p>
+                <p style="color:#888; font-size:13px;">
+                  입금 예정일: ${esc(item.expected_date || item.transaction_date)}
+                </p>
+                ${item.memo ? `<p style="color:#888;">${esc(item.memo)}</p>` : ""}
+                <button
+                  type="button"
+                  data-receive-income="${esc(item.id)}"
+                  style="padding:9px 14px; border:0; border-radius:9px; background:#eee8f5; color:#6d568d;"
+                >
+                  입금 완료
+                </button>
+              </div>
+            `).join("")
+            : `<p style="color:#999;">등록된 입금 예정 수당이 없어.</p>`
+        }
+      </section>
+
+      <section class="card">
+        <h2>✅ 입금 완료된 수당</h2>
+        ${
+          receivedIncome.length
+            ? receivedIncome.map(item => `
+              <div style="padding:12px 0; border-bottom:1px solid #eee;">
+                <strong>${esc(item.title)}</strong>
+                <p>+${Number(item.amount).toLocaleString("ko-KR")}원</p>
+                <p style="color:#888; font-size:13px;">
+                  실제 입금일: ${esc(item.received_date || item.transaction_date)}
+                </p>
+              </div>
+            `).join("")
+            : `<p style="color:#999;">아직 입금 완료된 수당이 없어.</p>`
+        }
       </section>
     </main>
   `;
 
   document.querySelector("#budgetBack").onclick = renderHome;
+
+  document.querySelector("#incomeForm").onsubmit = async (event) => {
+    event.preventDefault();
+
+    const title = document.querySelector("#incomeTitle").value.trim();
+    const amount = Number(document.querySelector("#incomeAmount").value);
+    const expectedDate = document.querySelector("#incomeExpectedDate").value;
+    const memo = document.querySelector("#incomeMemo").value.trim();
+
+    if (!title || amount <= 0 || !expectedDate) {
+      alert("수당 이름, 금액, 입금 예정일을 확인해 줘.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("budget_transactions")
+      .insert({
+        family_id: currentFamilyId,
+        type: "income",
+        category: "수당",
+        title,
+        amount,
+        transaction_date: expectedDate,
+        expected_date: expectedDate,
+        received_date: null,
+        is_received: false,
+        memo: memo || null
+      });
+
+    if (error) {
+      alert("수당을 등록하지 못했어요: " + error.message);
+      return;
+    }
+
+    alert("수당을 등록했어!");
+    openBudget();
+  };
+
+  document.querySelectorAll("[data-receive-income]").forEach(button => {
+    button.onclick = async () => {
+      const incomeId = button.dataset.receiveIncome;
+
+      if (!confirm("이 수당이 실제로 입금됐어?")) return;
+
+      const { error } = await supabase
+        .from("budget_transactions")
+        .update({
+          is_received: true,
+          received_date: todayString,
+          transaction_date: todayString
+        })
+        .eq("id", incomeId)
+        .eq("family_id", currentFamilyId);
+
+      if (error) {
+        alert("입금 완료 처리에 실패했어요: " + error.message);
+        return;
+      }
+
+      alert("입금 완료! 현재 잔액에 반영했어.");
+      openBudget();
+    };
+  });
 }
+
 
 
 async function openHotDeals() {
