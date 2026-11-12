@@ -363,3 +363,31 @@ button.ghost, .ghost {
   accent-color: #a995d0;
   flex-shrink: 0;
 }
+
+/* 정가네 아이들 성장 카드 */
+#growthChildren .menu-card {
+  min-height: 145px;
+  border: 1px solid #eee8f5;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #fff 55%, #f7f3fc);
+  box-shadow: 0 5px 16px rgba(100, 80, 130, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#growthChildren .menu-card:active {
+  transform: scale(0.97);
+}
+
+#growthChildren .menu-icon {
+  font-size: 25px;
+}
+
+#growthChildren .menu-card strong {
+  color: #514766;
+  font-size: 17px;
+}
+
+#growthChildren .menu-card small {
+  color: #958ba5;
+  font-size: 12px;
+}
