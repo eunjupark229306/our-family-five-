@@ -345,3 +345,21 @@ button.ghost, .ghost {
 .event-record .ghost {
   margin-top: 8px;
 }
+
+/* 장보기 체크박스 크기 조정 */
+#shoppingList label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#shoppingList input[type="checkbox"] {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  accent-color: #a995d0;
+  flex-shrink: 0;
+}
