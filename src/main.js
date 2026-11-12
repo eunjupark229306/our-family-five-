@@ -603,9 +603,9 @@ async function openChildrenGrowth() {
   style="width:100%; max-width:340px; display:block; margin:10px auto 24px; border-radius:24px;"
 />
       <header class="page-header">
-        <div class="eyebrow">OUR FAMILY GROWTH</div>
-        <h1>🌱 우리 삼형제 쑥쑥 기록</h1>
-        <p>아이를 선택해서 성장 기록을 확인해 봐!</p>
+      <div class="eyebrow">JEONG FAMILY · GROWTH</div>
+   <h1>우리 삼형제 성장 기록 🌱</h1>
+<p>하루하루 자라는 소중한 순간을 기록해요.</p>
       </header>
       <section class="menu-grid" id="growthChildren">
         ${children.map(child => `
