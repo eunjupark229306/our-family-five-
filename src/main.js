@@ -1096,6 +1096,7 @@ async function openHotDeals() {
   if (data === undefined) return;
 
   let records = data?.records || [];
+  let searchText = "";
 
   function calculate(price, quantity, unit) {
     if (unit === "kg") return {
@@ -1187,10 +1188,23 @@ async function openHotDeals() {
         </section>
 
         <section class="card">
+        <div style="margin:14px 0;">
+  <input
+    id="deal-search"
+    type="search"
+    placeholder="🔍 상품명 검색 (예: 고춧가루)"
+    value="${esc(searchText)}"
+  >
+</div>
           <h2>🛍️ 구매 기록</h2>
           <p>총 ${records.length}개</p>
 
-          ${records.map((item, index) => `
+         ${records
+  .map((item, index) => ({ item, index }))
+  .filter(({ item }) =>
+    `${item.name} ${item.shop}`.toLowerCase().includes(searchText.toLowerCase())
+  )
+  .map(({ item, index }) => `
             <div class="growth-record" style="margin-bottom:12px;">
               <strong>${esc(item.shop)} · ${esc(item.name)}</strong>
               <p>구매 가격: ${Number(item.price).toLocaleString("ko-KR")}원</p>
@@ -1208,6 +1222,13 @@ async function openHotDeals() {
     `;
 
     document.querySelector("#hot-deals-back").onclick = renderHome;
+    document.querySelector("#deal-search").addEventListener("input", event => {
+  searchText = event.target.value;
+  render();
+  const searchInput = document.querySelector("#deal-search");
+  searchInput.focus();
+  searchInput.setSelectionRange(searchText.length, searchText.length);
+});
 
     const priceInput = document.querySelector("#deal-price");
     const quantityInput = document.querySelector("#deal-quantity");
