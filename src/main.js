@@ -876,7 +876,7 @@ async function openShoppingFridge() {
           <h2>🛒 장보기 목록</h2>
           <form id="shoppingForm">
             <input id="shoppingName" placeholder="살 물건을 입력해 줘" required />
-            <button class="primary-button" type="submit">+ 장보기 추가</button>
+            <button class="primary" type="submit">+ 장보기 추가</button>
           </form>
 
           <div id="shoppingList">
@@ -889,7 +889,7 @@ async function openShoppingFridge() {
                     ${escapeText(item.name)}
                   </span>
                 </label>
-                <button class="soft-button" data-delete-shopping="${index}">삭제</button>
+               <button class="ghost" data-delete-shopping="${index}">삭제</button>
               </div>
             `).join("") || "<p>아직 장보기 목록이 없어요.</p>"}
           </div>
