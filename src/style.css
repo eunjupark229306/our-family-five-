@@ -428,3 +428,48 @@ button.ghost, .ghost {
 #growthForm input {
   margin-bottom: 12px;
 }
+
+/* 정가네 기관별 급식표 카드 */
+.meal-institution-card {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid #eee8f5;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(100, 80, 130, 0.06);
+}
+
+.meal-institution-card h3 {
+  margin: 0 0 6px;
+  color: #514766;
+  font-size: 18px;
+}
+
+.meal-institution-card > p {
+  margin: 0 0 14px;
+  color: #9991a4;
+  font-size: 12px;
+}
+
+.meal-image-area {
+  overflow: hidden;
+  border-radius: 16px;
+  background: #f8f5fc;
+}
+
+.meal-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+
+.empty-preview {
+  display: flex;
+  min-height: 150px;
+  align-items: center;
+  justify-content: center;
+  color: #958ba5;
+  font-size: 13px;
+  text-align: center;
+}
