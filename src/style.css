@@ -541,3 +541,29 @@ button.ghost, .ghost {
 .house-task-card button {
   flex-shrink: 0;
 }
+
+/* 집안일 진행 상황 */
+#houseProgress {
+  margin: 10px 0 16px;
+  padding: 12px 15px;
+  border-radius: 14px;
+  background: #f7f3fc;
+  color: #827398;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 집안일 추가 영역 */
+#houseForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#houseForm input {
+  box-sizing: border-box;
+}
+
+#houseForm button {
+  width: 100%;
+}
