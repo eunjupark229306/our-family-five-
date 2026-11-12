@@ -1137,7 +1137,7 @@ async function openHouseholdManagement() {
 
           <div id="houseTaskList">
             ${tasks.map((task, index) => `
-              <div class="growth-record">
+              <div class="house-task-card">
                 <label>
                   <input
                     type="checkbox"
