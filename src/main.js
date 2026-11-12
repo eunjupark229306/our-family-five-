@@ -823,6 +823,7 @@ async function openShoppingFridge() {
   }
 
   let items = data?.value || { shopping: [], fridge: [] };
+  let activeTab = "shopping";
   items.events = items.events || [];
 
   function escapeText(value) {
@@ -964,7 +965,21 @@ function showTab(section) {
   eventSection.style.display = section === "event" ? "" : "none";
 }
 
-document.querySelector("#shoppingTab").onclick = () => showTab("shopping");
+document.querySelector("#shoppingTab").onclick = () => {
+  activeTab = "shopping";
+  showTab("shopping");
+};
+
+document.querySelector("#fridgeTab").onclick = () => {
+  activeTab = "fridge";
+  showTab("fridge");
+};
+
+document.querySelector("#eventTab").onclick = () => {
+  activeTab = "event";
+  showTab("event");
+};
+    
     // 마트 행사 저장
 document.querySelector("#eventForm").onsubmit = async event => {
   event.preventDefault();
@@ -1000,7 +1015,7 @@ document.querySelectorAll("[data-delete-event]").forEach(button => {
 document.querySelector("#fridgeTab").onclick = () => showTab("fridge");
 document.querySelector("#eventTab").onclick = () => showTab("event");
 
-showTab("shopping");
+showTab(activeTab);
 
     document.querySelector("#shoppingForm").onsubmit = async event => {
       event.preventDefault();
