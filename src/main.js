@@ -258,110 +258,145 @@ async function openChildrenSettings() {
   });
 }
 
-async function openMealPlan(selectedInstitutionId = null) {
+
+async function openMealPlan() {
   const settings = await loadFamilySettings();
   if (!settings) return;
+
   if (!settings.institutions.length) {
     showMessage("먼저 아이들 성장 메뉴에서 기관을 추가해줘.");
     return openChildrenSettings();
   }
 
-  const institution = settings.institutions.find(item => item.id === selectedInstitutionId)
-    || settings.institutions[0];
   const month = monthKey();
-  const storageKey = `meal-${institution.id}-${month}`;
-  const saved = await loadSection(storageKey);
-  const legacy = await loadSection(`식단 & 급식표-${month}`);
-  if (saved === undefined || legacy === undefined) return;
 
-  const children = settings.children.filter(child => child.institutionId === institution.id);
-  const childNames = children.length ? children.map(child => child.name).join(", ") : "아직 연결된 아이가 없어";
-  const preview = saved?.photo
-    ? `<img class="meal-preview" src="${esc(saved.photo)}" alt="이번 달 급식표">`
-    : `<div class="empty-preview">이번 달 급식표 사진을 올려줘 📷</div>`;
+  const mealData = await Promise.all(
+    settings.institutions.map(async institution => {
+      const storageKey = `meal-${institution.id}-${month}`;
+      const saved = await loadSection(storageKey);
+
+      return { institution, storageKey, saved };
+    })
+  );
+
+  if (mealData.some(item => item.saved === undefined)) return;
 
   app.innerHTML = `
     <main class="shell">
       <button class="back-button" id="back">← 홈으로</button>
+
       <section class="card">
-        <div class="eyebrow">MEAL CALENDAR</div>
-        <h2>식단 & 급식표</h2>
-        <p>${month} · ${esc(childNames)}</p>
-        <label>기관 선택
-          <select id="institution-select">
-            ${settings.institutions.map(inst => `
-              <option value="${esc(inst.id)}" ${inst.id === institution.id ? "selected" : ""}>
-                ${esc(inst.name)} (${esc(inst.type)})
-              </option>`).join("")}
-          </select>
-        </label>
-        <div class="meal-image-area">${preview}</div>
-        <label>이번 달 급식표 사진
-          <input id="meal-photo" type="file" accept="image/*">
-        </label>
-        <label>메모
-          <textarea id="meal-note" rows="3" placeholder="알레르기, 특별식 등 메모">${esc(saved?.note || "")}</textarea>
-        </label>
-        <button id="save-meal" class="primary-button">급식표 저장하기</button>
-        <button id="open-meal-calendar" class="soft-button">📅 날짜별 식단 달력</button>
-        ${legacy?.photo ? `
-          <div class="legacy-box">
-            <h3>이전에 올린 급식표 사진</h3>
-            <p>기존에 저장했던 사진이야. 어느 기관의 급식표인지 확인한 뒤 아래 버튼으로 옮겨줘.</p>
-            <img class="meal-preview" src="${esc(legacy.photo)}" alt="이전 급식표">
-            <button id="import-legacy" class="soft-button">이 사진을 ${esc(institution.name)} 급식표로 가져오기</button>
-          </div>` : ""}
-        <button id="manage-children" class="soft-button">아이들 / 기관 설정</button>
+        <div class="eyebrow">OUR FAMILY MEAL PLAN</div>
+        <h2>우리집 급식표</h2>
+        <p>${month} · 모든 기관의 급식표를 한눈에 확인해봐 ❤️</p>
+
+        ${mealData.map(({ institution, saved }) => `
+          <div class="meal-institution-card"
+            data-institution-id="${esc(institution.id)}"
+            style="border:1px solid #eee; border-radius:16px; padding:16px; margin:20px 0;">
+
+            <h3>${esc(institution.name)}</h3>
+            <p style="color:#888; font-size:13px;">${esc(institution.type)}</p>
+
+            <div class="meal-image-area">
+              ${saved?.photo
+                ? `<img class="meal-preview" data-enlarge-meal
+                    src="${esc(saved.photo)}" alt="${esc(institution.name)} 급식표"
+                    style="cursor:zoom-in;">`
+                : `<div class="empty-preview">이번 달 급식표 사진을 올려줘 📷</div>`
+              }
+            </div>
+
+            <label>급식표 사진
+              <input type="file" data-meal-photo accept="image/*">
+            </label>
+
+            <label>메모
+              <textarea data-meal-note rows="2"
+                placeholder="알레르기, 특별식 등 메모">${esc(saved?.note || "")}</textarea>
+            </label>
+
+            <button type="button" data-save-meal class="primary-button">
+              ${saved?.photo ? "급식표 사진 교체하기" : "급식표 사진 저장하기"}
+            </button>
+
+            <button type="button" data-open-calendar class="soft-button">
+              📅 날짜별 식단 달력
+            </button>
+          </div>
+        `).join("")}
+
+        <button class="soft-button" id="manage-children">
+          아이들 / 기관 설정
+        </button>
       </section>
     </main>`;
 
   document.querySelector("#back").addEventListener("click", renderHome);
-  document.querySelector("#institution-select").addEventListener("change", event => openMealPlan(event.target.value));
   document.querySelector("#manage-children").addEventListener("click", openChildrenSettings);
-  document.querySelector("#open-meal-calendar").addEventListener("click", () => {
-  openMealCalendar(institution.id);
-});
 
-  document.querySelector("#save-meal").addEventListener("click", async () => {
-    const file = document.querySelector("#meal-photo").files[0];
-    let photo = saved?.photo || null;
-    if (file) {
-      try {
-        photo = await compressImage(file);
-      } catch {
-        return showMessage("사진을 읽지 못했어. 다른 사진으로 다시 시도해줘.");
-      }
-    }
-    if (!photo && !document.querySelector("#meal-note").value.trim()) {
-      return showMessage("사진을 올리거나 메모를 적어줘.");
-    }
-    const ok = await saveSection(storageKey, {
-      photo,
-      note: document.querySelector("#meal-note").value,
-      month,
-      institutionId: institution.id,
-      institutionName: institution.name
+  document.querySelectorAll(".meal-institution-card").forEach(card => {
+    const institutionId = card.dataset.institutionId;
+    const item = mealData.find(data => data.institution.id === institutionId);
+
+    card.querySelector("[data-open-calendar]").addEventListener("click", () => {
+      openMealCalendar(institutionId);
     });
-    if (ok) showMessage("급식표를 클라우드에 저장했어!");
+
+    card.querySelector("[data-save-meal]").addEventListener("click", async () => {
+      const file = card.querySelector("[data-meal-photo]").files[0];
+      let photo = item.saved?.photo || null;
+
+      if (file) {
+        try {
+          photo = await compressImage(file);
+        } catch {
+          return showMessage("사진을 읽지 못했어. 다른 사진으로 다시 시도해줘.");
+        }
+      }
+
+      const note = card.querySelector("[data-meal-note]").value;
+
+      if (!photo && !note.trim()) {
+        return showMessage("사진을 올리거나 메모를 적어줘.");
+      }
+
+      const ok = await saveSection(item.storageKey, {
+        photo,
+        note,
+        month,
+        institutionId,
+        institutionName: item.institution.name
+      });
+
+      if (ok) {
+        showMessage(`${item.institution.name} 급식표를 저장했어! ❤️`);
+        openMealPlan();
+      }
+    });
   });
 
-  const importButton = document.querySelector("#import-legacy");
-  if (importButton) {
-    importButton.addEventListener("click", async () => {
-      const ok = await saveSection(storageKey, {
-        photo: legacy.photo,
-        note: legacy.note || "",
-        month,
-        institutionId: institution.id,
-        institutionName: institution.name
-      });
-      if (ok) {
-        showMessage(`${institution.name} 급식표로 가져왔어!`);
-        openMealPlan(institution.id);
-      }
+  document.querySelectorAll("[data-enlarge-meal]").forEach(img => {
+    img.addEventListener("click", () => {
+      const overlay = document.createElement("div");
+      overlay.style.cssText = `
+        position:fixed; inset:0; z-index:9999;
+        background:rgba(0,0,0,0.85);
+        display:flex; align-items:center; justify-content:center;
+        padding:20px; cursor:zoom-out;
+      `;
+
+      overlay.innerHTML = `
+        <img src="${esc(img.src)}"
+          style="max-width:100%; max-height:90vh; object-fit:contain; border-radius:12px;">
+      `;
+
+      overlay.addEventListener("click", () => overlay.remove());
+      document.body.appendChild(overlay);
     });
-  }
+  });
 }
+
 
 
 async function openMealCalendar(institutionId) {
