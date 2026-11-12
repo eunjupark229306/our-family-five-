@@ -317,3 +317,31 @@ button.ghost, .ghost {
 .logout-button:hover {
   background: #f5f1fb;
 }
+
+/* 정가네 마트 행사 카드 */
+.event-record {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid #eee8f5;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(100, 80, 130, 0.05);
+}
+
+.event-record strong {
+  display: block;
+  margin-bottom: 9px;
+  color: #514766;
+  font-size: 15px;
+}
+
+.event-record p {
+  margin: 6px 0;
+  color: #827b8e;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.event-record .ghost {
+  margin-top: 8px;
+}
