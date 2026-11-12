@@ -823,6 +823,7 @@ async function openShoppingFridge() {
   }
 
   let items = data?.value || { shopping: [], fridge: [] };
+  items.events = items.events || [];
 
   function escapeText(value) {
     return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -860,10 +861,15 @@ async function openShoppingFridge() {
         <header class="page-header">
           <div class="eyebrow">OUR FAMILY KITCHEN</div>
           <h1>🛒 장보기 & 냉장고</h1>
+          <div class="tab-menu" style="display:flex; gap:8px; margin:16px 0;">
+  <button type="button" class="soft-button" id="shoppingTab">🛒 장보기</button>
+  <button type="button" class="soft-button" id="fridgeTab">🧊 냉장고</button>
+  <button type="button" class="soft-button" id="eventTab">🏷️ 이번 주 마트 행사</button>
+</div>
           <p>우리 가족의 식재료를 한곳에서 관리해요.</p>
         </header>
 
-        <section class="card">
+        <section class="card" id="shoppingSection">
           <h2>🛒 장보기 목록</h2>
           <form id="shoppingForm">
             <input id="shoppingName" placeholder="살 물건을 입력해 줘" required />
@@ -902,10 +908,99 @@ async function openShoppingFridge() {
             `).join("") || "<p>등록된 식재료가 없어요.</p>"}
           </div>
         </section>
+        <section class="card" id="eventSection">
+  <h2>🏷️ 이번 주 마트 행사</h2>
+  <p>놓치고 싶지 않은 할인 상품과 쿠폰을 기록해 둬.</p>
+
+  <form id="eventForm">
+    <label>마트 이름
+      <input id="eventShop" placeholder="예: 이마트, 홈플러스" required>
+    </label>
+
+    <label>행사 상품
+      <input id="eventName" placeholder="예: 계란 30구" required>
+    </label>
+
+    <label>할인 가격 (원)
+      <input id="eventPrice" type="number" min="0" placeholder="예: 5980" required>
+    </label>
+
+    <label>행사 기간
+      <input id="eventDate" placeholder="예: 11/12~11/18">
+    </label>
+
+    <label>쿠폰 및 메모
+      <textarea id="eventMemo" rows="2" placeholder="쿠폰 사용 조건이나 할인 정보"></textarea>
+    </label>
+
+    <button class="primary-button" type="submit">+ 행사 기록 저장</button>
+  </form>
+
+  <div id="eventList"></div>
+</section>
       </main>
     `;
 
     document.querySelector("#shoppingBack").onclick = renderHome;
+    document.querySelector("#eventList").innerHTML =
+  items.events.map((item, index) => `
+    <div class="growth-record" style="margin-top:12px;">
+      <strong>${escapeText(item.shop)} · ${escapeText(item.name)}</strong>
+      <p>할인 가격: ${Number(item.price).toLocaleString("ko-KR")}원</p>
+      ${item.date ? `<p>행사 기간: ${escapeText(item.date)}</p>` : ""}
+      ${item.memo ? `<p>메모: ${escapeText(item.memo)}</p>` : ""}
+      <button class="soft-button" data-delete-event="${index}">삭제</button>
+    </div>
+  `).join("") || "<p>아직 등록된 행사가 없어.</p>";
+
+// 탭 전환
+const shoppingSection = document.querySelector("#shoppingSection");
+const fridgeSection = document.querySelector("#fridgeSection");
+const eventSection = document.querySelector("#eventSection");
+
+function showTab(section) {
+  shoppingSection.style.display = section === "shopping" ? "" : "none";
+  fridgeSection.style.display = section === "fridge" ? "" : "none";
+  eventSection.style.display = section === "event" ? "" : "none";
+}
+
+document.querySelector("#shoppingTab").onclick = () => showTab("shopping");
+    // 마트 행사 저장
+document.querySelector("#eventForm").onsubmit = async event => {
+  event.preventDefault();
+
+  const shop = document.querySelector("#eventShop").value.trim();
+  const name = document.querySelector("#eventName").value.trim();
+  const price = Number(document.querySelector("#eventPrice").value);
+  const date = document.querySelector("#eventDate").value.trim();
+  const memo = document.querySelector("#eventMemo").value.trim();
+
+  if (!shop || !name || document.querySelector("#eventPrice").value === "") {
+    return alert("마트 이름, 상품명, 가격을 입력해 줘.");
+  }
+
+  items.events.unshift({ shop, name, price, date, memo });
+
+  if (await saveItems()) {
+    alert("마트 행사 기록을 저장했어! ❤️");
+    render();
+  }
+};
+
+// 마트 행사 삭제
+document.querySelectorAll("[data-delete-event]").forEach(button => {
+  button.onclick = async () => {
+    items.events.splice(Number(button.dataset.deleteEvent), 1);
+
+    if (await saveItems()) {
+      render();
+    }
+  };
+});
+document.querySelector("#fridgeTab").onclick = () => showTab("fridge");
+document.querySelector("#eventTab").onclick = () => showTab("event");
+
+showTab("shopping");
 
     document.querySelector("#shoppingForm").onsubmit = async event => {
       event.preventDefault();
