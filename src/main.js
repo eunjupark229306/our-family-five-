@@ -999,9 +999,10 @@ document.querySelector("#eventForm").onsubmit = async event => {
   items.events.unshift({ shop, name, price, date, memo });
 
   if (await saveItems()) {
-    alert("마트 행사 기록을 저장했어! ❤️");
-    render();
-  }
+  alert("마트 행사 기록을 저장했어! ❤️");
+  activeTab = "event";
+  render();
+}
 };
 
 // 마트 행사 삭제
