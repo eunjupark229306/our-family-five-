@@ -899,14 +899,14 @@ async function openShoppingFridge() {
           <h2>🧊 냉장고 식재료</h2>
           <form id="fridgeForm">
             <input id="fridgeName" placeholder="식재료 이름" required />
-            <button class="primary-button" type="submit">+ 식재료 등록</button>
+            <button class="primary" type="submit">+ 식재료 등록</button>
           </form>
 
           <div id="fridgeList">
             ${items.fridge.map((item, index) => `
               <div class="growth-record">
                 <strong>${escapeText(item.name)}</strong>
-                <button class="soft-button" data-delete-fridge="${index}">삭제</button>
+                <button class="ghost" data-delete-fridge="${index}">삭제</button>
               </div>
             `).join("") || "<p>등록된 식재료가 없어요.</p>"}
           </div>
@@ -936,7 +936,7 @@ async function openShoppingFridge() {
       <textarea id="eventMemo" rows="2" placeholder="쿠폰 사용 조건이나 할인 정보"></textarea>
     </label>
 
-    <button class="primary-button" type="submit">+ 행사 기록 저장</button>
+    <button class="primary" type="submit">+ 행사 기록 저장</button>
   </form>
 
   <div id="eventList"></div>
@@ -947,12 +947,12 @@ async function openShoppingFridge() {
     document.querySelector("#shoppingBack").onclick = renderHome;
     document.querySelector("#eventList").innerHTML =
   items.events.map((item, index) => `
-    <div class="growth-record" style="margin-top:12px;">
+    <div class="event-record">
       <strong>${escapeText(item.shop)} · ${escapeText(item.name)}</strong>
       <p>할인 가격: ${Number(item.price).toLocaleString("ko-KR")}원</p>
       ${item.date ? `<p>행사 기간: ${escapeText(item.date)}</p>` : ""}
       ${item.memo ? `<p>메모: ${escapeText(item.memo)}</p>` : ""}
-      <button class="soft-button" data-delete-event="${index}">삭제</button>
+     <button class="ghost" data-delete-event="${index}">삭제</button>
     </div>
   `).join("") || "<p>아직 등록된 행사가 없어.</p>";
 
