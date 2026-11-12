@@ -1125,7 +1125,7 @@ async function openHouseholdManagement() {
               placeholder="예: 거실 청소하기"
               required
             />
-            <button class="primary-button" type="submit">
+            <button class="primary" type="submit">
               + 할 일 추가
             </button>
           </form>
@@ -1149,7 +1149,7 @@ async function openHouseholdManagement() {
                   </span>
                 </label>
                 <button
-                  class="soft-button"
+                  class="ghost"
                   data-house-delete="${index}"
                 >삭제</button>
               </div>
