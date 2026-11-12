@@ -887,8 +887,6 @@ async function openShoppingFridge() {
           <h2>🧊 냉장고 식재료</h2>
           <form id="fridgeForm">
             <input id="fridgeName" placeholder="식재료 이름" required />
-            <label for="fridgeExpiry">유통기한</label>
-            <input id="fridgeExpiry" type="date" />
             <button class="primary-button" type="submit">+ 식재료 등록</button>
           </form>
 
@@ -896,7 +894,6 @@ async function openShoppingFridge() {
             ${items.fridge.map((item, index) => `
               <div class="growth-record">
                 <strong>${escapeText(item.name)}</strong>
-                <p>유통기한: ${escapeText(item.expiry || "미입력")}</p>
                 <button class="soft-button" data-delete-fridge="${index}">삭제</button>
               </div>
             `).join("") || "<p>등록된 식재료가 없어요.</p>"}
@@ -919,10 +916,9 @@ async function openShoppingFridge() {
     document.querySelector("#fridgeForm").onsubmit = async event => {
       event.preventDefault();
       const name = document.querySelector("#fridgeName").value.trim();
-      const expiry = document.querySelector("#fridgeExpiry").value;
       if (!name) return;
 
-      items.fridge.push({ name, expiry });
+      items.fridge.push({ name });
       if (await saveItems()) render();
     };
 
