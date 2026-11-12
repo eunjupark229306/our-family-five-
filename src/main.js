@@ -1417,20 +1417,3 @@ async function openHotDeals() {
 
 
 start();
-
-/* 정가네 로그아웃 버튼 */
-.logout-button {
-  flex-shrink: 0;
-  border: 1px solid #e9e2f2;
-  border-radius: 20px;
-  background: #fff;
-  color: #9585b3;
-  padding: 8px 13px;
-  font-size: 12px;
-  font-weight: 600;
-  box-shadow: 0 3px 10px rgba(100, 80, 130, 0.06);
-}
-
-.logout-button:hover {
-  background: #f5f1fb;
-}
