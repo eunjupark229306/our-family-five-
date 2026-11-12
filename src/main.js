@@ -10,6 +10,7 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 
 const app = document.querySelector("#app");
 let currentUser = null;
+let currentFamilyId = null;
 
 
 const sections = [
@@ -73,31 +74,35 @@ function renderLogin() {
 }
 
 async function saveSection(key, value) {
-  if (!supabase || !currentUser) {
-    showMessage("로그인이 필요해.");
+  if (!supabase || !currentUser || !currentFamilyId) {
+    showMessage("가족 공간 로그인이 필요해.");
     return false;
   }
+
   const { error } = await supabase.from("family_data").upsert({
     user_id: currentUser.id,
+    family_id: currentFamilyId,
     key,
     value,
     updated_at: new Date().toISOString()
-  }, { onConflict: "user_id,key" });
+  }, { onConflict: "family_id,key" });
 
   if (error) {
     showMessage("저장하지 못했어요: " + error.message);
     return false;
   }
+
   return true;
 }
 
 // null은 아직 저장된 자료가 없다는 뜻, undefined는 불러오기 오류야.
 async function loadSection(key) {
-  if (!supabase || !currentUser) return undefined;
+  if (!supabase || !currentUser || !currentFamilyId) return undefined;
+
   const { data, error } = await supabase
     .from("family_data")
     .select("value")
-    .eq("user_id", currentUser.id)
+    .eq("family_id", currentFamilyId)
     .eq("key", key)
     .maybeSingle();
 
@@ -105,7 +110,9 @@ async function loadSection(key) {
     showMessage("불러오지 못했어요: " + error.message);
     return undefined;
   }
+
   return data?.value ?? null;
+}
 }
 
 async function loadFamilySettings() {
@@ -555,21 +562,66 @@ function compressImage(file) {
   });
 }
 
+async function loadCurrentFamily() {
+  if (!supabase || !currentUser) return false;
+
+  const { data, error } = await supabase
+    .from("family_members")
+    .select("family_id")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (error || !data?.family_id) {
+    showMessage("가족 공간을 불러오지 못했어요: " + (error?.message || "가족 구성원 등록을 확인해 줘."));
+    currentFamilyId = null;
+    return false;
+  }
+
+  currentFamilyId = data.family_id;
+  return true;
+}
 async function start() {
   if (!supabase) return renderLogin();
+
   const { data: { session }, error } = await supabase.auth.getSession();
+
   if (error) {
     showMessage("로그인 정보를 확인하지 못했어: " + error.message);
     return renderLogin();
   }
-  currentUser = session?.user || null;
-  if (currentUser) await renderHome();
-  else renderLogin();
 
-  supabase.auth.onAuthStateChange(async (_event, session) => {
+  currentUser = session?.user || null;
+
+  if (currentUser) {
+    const familyLoaded = await loadCurrentFamily();
+
+    if (familyLoaded) {
+      await renderHome();
+    } else {
+      renderLogin();
+    }
+  } else {
+    currentFamilyId = null;
+    renderLogin();
+  }
+
+  supabase.auth.onAuthStateChange((_event, session) => {
     currentUser = session?.user || null;
-    if (currentUser) await renderHome();
-    else renderLogin();
+
+    if (currentUser) {
+      Promise.resolve().then(async () => {
+        const familyLoaded = await loadCurrentFamily();
+
+        if (familyLoaded) {
+          await renderHome();
+        } else {
+          renderLogin();
+        }
+      });
+    } else {
+      currentFamilyId = null;
+      renderLogin();
+    }
   });
 }
 
@@ -636,7 +688,7 @@ async function openGrowthDetail(child, defaults) {
   const { data, error } = await supabase
     .from("family_data")
     .select("value")
-    .eq("user_id", currentUser.id)
+    .eq("family_id", currentFamilyId)
     .eq("key", key)
     .maybeSingle();
 
@@ -780,20 +832,20 @@ async function openGrowthDetail(child, defaults) {
 
       updated.push(newRecord);
 
-      const { error } = await supabase
-        .from("family_data")
-        .upsert({
-          user_id: currentUser.id,
-          key,
-          value: { records: updated },
-          updated_at: new Date().toISOString()
-        });
+     const { error } = await supabase
+  .from("family_data")
+  .upsert({
+    user_id: currentUser.id,
+    family_id: currentFamilyId,
+    key,
+    value: { records: updated },
+    updated_at: new Date().toISOString()
+  }, { onConflict: "family_id,key" });
 
-      if (error) {
-        alert("저장하지 못했어요: " + error.message);
-        return;
-      }
-
+if (error) {
+  alert("저장하지 못했어요: " + error.message);
+  return;
+}
       records = updated;
       alert("성장 기록을 클라우드에 저장했어요! ❤️");
       showRecords();
@@ -816,7 +868,7 @@ async function openShoppingFridge() {
   const { data, error } = await supabase
     .from("family_data")
     .select("value")
-    .eq("user_id", user.id)
+    .eq("family_id", currentFamilyId)
     .eq("key", key)
     .maybeSingle();
 
@@ -839,23 +891,29 @@ async function openShoppingFridge() {
     })[char]);
   }
 
-  async function saveItems() {
-    const { error } = await supabase
-      .from("family_data")
-      .upsert({
-        user_id: user.id,
-        key,
-        value: items,
-        updated_at: new Date().toISOString()
-      });
-
-    if (error) {
-      alert("저장하지 못했어요: " + error.message);
-      return false;
-    }
-
-    return true;
+async function saveItems() {
+  if (!currentFamilyId) {
+    alert("가족 공간을 확인할 수 없어요.");
+    return false;
   }
+
+  const { error } = await supabase
+    .from("family_data")
+    .upsert({
+      user_id: user.id,
+      family_id: currentFamilyId,
+      key,
+      value: items,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "family_id,key" });
+
+  if (error) {
+    alert("저장하지 못했어요: " + error.message);
+    return false;
+  }
+
+  return true;
+}
 
   function render() {
     app.innerHTML = `
@@ -1079,7 +1137,7 @@ async function openHouseholdManagement() {
   const { data, error } = await supabase
     .from("family_data")
     .select("value")
-    .eq("user_id", user.id)
+    .eq("family_id", currentFamilyId)
     .eq("key", key)
     .maybeSingle();
 
@@ -1090,23 +1148,29 @@ async function openHouseholdManagement() {
 
   let tasks = data?.value?.tasks || [];
 
-  async function saveTasks() {
-    const { error } = await supabase
-      .from("family_data")
-      .upsert({
-        user_id: user.id,
-        key,
-        value: { tasks },
-        updated_at: new Date().toISOString()
-      });
-
-    if (error) {
-      alert("저장하지 못했어요: " + error.message);
-      return false;
-    }
-
-    return true;
+ async function saveTasks() {
+  if (!currentFamilyId) {
+    alert("가족 공간을 확인할 수 없어요.");
+    return false;
   }
+
+  const { error } = await supabase
+    .from("family_data")
+    .upsert({
+      user_id: user.id,
+      family_id: currentFamilyId,
+      key,
+      value: { tasks },
+      updated_at: new Date().toISOString()
+    }, { onConflict: "family_id,key" });
+
+  if (error) {
+    alert("저장하지 못했어요: " + error.message);
+    return false;
+  }
+
+  return true;
+}
 
   function render() {
     app.innerHTML = `
