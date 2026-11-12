@@ -157,9 +157,11 @@ async function renderHome() {
   document.querySelectorAll("[data-section]").forEach(button => {
     button.addEventListener("click", () => openSection(button.dataset.section));
   });
+
 }
 
 async function openSection(title) {
+  history.pushState({ jeongFamilyPage: "menu" }, "", location.href);
   if (title === "식단 & 급식표") return openMealPlan();
   if (title === "아이들 성장") return openChildrenGrowth();
   if (title === "장보기 / 냉장고 재료") return openShoppingFridge();
@@ -1415,5 +1417,13 @@ async function openHotDeals() {
   render();
 }
 
+// 정가네 휴대폰 뒤로가기 처리
+window.addEventListener("popstate", () => {
+  const isHome = Boolean(document.querySelector(".menu-grid"));
+
+  if (!isHome) {
+    renderHome();
+  }
+});
 
 start();
