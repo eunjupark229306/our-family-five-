@@ -1330,6 +1330,32 @@ async function openBudget() {
   const receivedIncome = (transactions || []).filter(
     item => item.type === "income" && item.is_received
   );
+    const selectedYear = Number(settings?.budget_year ?? 2027);
+  const monthlyBudget = Number(settings?.monthly_budget ?? 2132000);
+
+  const monthlyExpenses = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const monthString = String(month).padStart(2, "0");
+
+    const startDate = `${selectedYear}-${monthString}-01`;
+    const endDate = month === 12
+      ? `${selectedYear + 1}-01-01`
+      : `${selectedYear}-${String(month + 1).padStart(2, "0")}-01`;
+
+    const spent = (transactions || [])
+      .filter(item =>
+        item.type === "expense" &&
+        item.transaction_date >= startDate &&
+        item.transaction_date < endDate
+      )
+      .reduce((sum, item) => sum + Number(item.amount), 0);
+
+    return {
+      month,
+      spent,
+      remaining: monthlyBudget - spent
+    };
+  });
 
   app.innerHTML = `
     <main class="shell">
@@ -1354,6 +1380,43 @@ async function openBudget() {
         <p>월 기본 예산 2,132,000원</p>
         <p>연간 계획 예산 25,744,000원</p>
         <p>비상금 월 적립 200,000원</p>
+      </section>
+
+      <section class="card">
+        <h2>📅 ${selectedYear}년 월별 가계부</h2>
+        <p style="color:#888; font-size:13px;">
+          확인하고 싶은 달을 선택해 줘.
+        </p>
+
+        <div style="
+          display:grid;
+          grid-template-columns:repeat(3, 1fr);
+          gap:10px;
+          margin-top:16px;
+        ">
+          ${monthlyExpenses.map(item => `
+            <button
+              type="button"
+              data-budget-month="${item.month}"
+              style="
+                padding:14px 8px;
+                border:1px solid #eee;
+                border-radius:13px;
+                background:#faf8fc;
+                color:#57456f;
+                text-align:center;
+              "
+            >
+              <strong>${item.month}월</strong>
+              <div style="font-size:12px; margin-top:7px;">
+                지출 ${item.spent.toLocaleString("ko-KR")}원
+              </div>
+              <div style="font-size:11px; color:#888; margin-top:4px;">
+                잔액 ${item.remaining.toLocaleString("ko-KR")}원
+              </div>
+            </button>
+          `).join("")}
+        </div>
       </section>
 
       <section class="card">
@@ -1451,6 +1514,12 @@ async function openBudget() {
   `;
 
   document.querySelector("#budgetBack").onclick = renderHome;
+    document.querySelectorAll("[data-budget-month]").forEach(button => {
+    button.onclick = () => {
+      const month = Number(button.dataset.budgetMonth);
+      openBudgetMonth(month);
+    };
+  });
 
   document.querySelector("#incomeForm").onsubmit = async (event) => {
     event.preventDefault();
@@ -1517,6 +1586,114 @@ async function openBudget() {
 }
 
 
+
+async function openBudgetMonth(month) {
+  if (!currentFamilyId) {
+    alert("가족 공간을 확인할 수 없어요.");
+    return;
+  }
+
+  const { data: settings, error: settingsError } = await supabase
+    .from("budget_settings")
+    .select("*")
+    .eq("family_id", currentFamilyId)
+    .maybeSingle();
+
+  if (settingsError) {
+    alert("예산을 불러오지 못했어요: " + settingsError.message);
+    return;
+  }
+
+  const year = Number(settings?.budget_year ?? 2027);
+  const monthlyBudget = Number(settings?.monthly_budget ?? 2132000);
+
+  const monthString = String(month).padStart(2, "0");
+  const startDate = `${year}-${monthString}-01`;
+
+  const endDate = month === 12
+    ? `${year + 1}-01-01`
+    : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+
+  const { data: expenses, error } = await supabase
+    .from("budget_transactions")
+    .select("*")
+    .eq("family_id", currentFamilyId)
+    .eq("type", "expense")
+    .gte("transaction_date", startDate)
+    .lt("transaction_date", endDate)
+    .order("transaction_date", { ascending: false });
+
+  if (error) {
+    alert("월별 지출을 불러오지 못했어요: " + error.message);
+    return;
+  }
+
+  const totalExpense = (expenses || []).reduce(
+    (sum, item) => sum + Number(item.amount),
+    0
+  );
+
+  const remaining = monthlyBudget - totalExpense;
+
+  app.innerHTML = `
+    <main class="shell">
+      <button class="back-button" id="monthBack">← 가계부로</button>
+
+      <header class="page-header">
+        <div class="eyebrow">JEONG FAMILY BUDGET</div>
+        <h1>📅 ${year}년 ${month}월</h1>
+        <p>우리 가족의 월별 살림 기록</p>
+      </header>
+
+      <section class="card">
+        <h2>이번 달 예산</h2>
+        <h1>${monthlyBudget.toLocaleString("ko-KR")}원</h1>
+        <p>월 기본 예산</p>
+      </section>
+
+      <section class="card">
+        <h2>이번 달 실제 지출</h2>
+        <h1>${totalExpense.toLocaleString("ko-KR")}원</h1>
+        <p>남은 예산</p>
+        <h2 style="color:${remaining < 0 ? "#d65b5b" : "#75618f"};">
+          ${remaining.toLocaleString("ko-KR")}원
+        </h2>
+        ${
+          remaining < 0
+            ? `<p style="color:#d65b5b;">이번 달 예산을 초과했어.</p>`
+            : ""
+        }
+      </section>
+
+      <section class="card">
+        <h2>🧾 ${month}월 지출 내역</h2>
+
+        ${
+          expenses && expenses.length
+            ? expenses.map(item => `
+              <div style="padding:13px 0; border-bottom:1px solid #eee;">
+                <div style="display:flex; justify-content:space-between; gap:10px;">
+                  <strong>${esc(item.title)}</strong>
+                  <strong>${Number(item.amount).toLocaleString("ko-KR")}원</strong>
+                </div>
+                <p style="font-size:13px; color:#888; margin:6px 0 0;">
+                  ${esc(item.category)} · ${esc(item.transaction_date)}
+                </p>
+                ${
+                  item.memo
+                    ? `<p style="font-size:13px; color:#888;">${esc(item.memo)}</p>`
+                    : ""
+                }
+              </div>
+            `).join("")
+            : `<p style="color:#999;">아직 등록된 지출이 없어. 이 달의 예산은 ${monthlyBudget.toLocaleString("ko-KR")}원이야.</p>`
+        }
+      </section>
+    </main>
+  `;
+
+  document.querySelector("#monthBack").onclick = openBudget;
+}
 
 async function openHotDeals() {
   const key = "hot-deals";
