@@ -1381,7 +1381,26 @@ async function openBudget() {
       incomeByCategory[item.category] += Number(item.amount);
     }
   });
+  const annualExpenses = (transactions || []).filter(item =>
+    item.type === "expense" &&
+    item.transaction_date >= `${selectedYear}-01-01` &&
+    item.transaction_date < `${selectedYear + 1}-01-01`
+  );
 
+  const annualExpenseTotal = annualExpenses.reduce(
+    (sum, item) => sum + Number(item.amount),
+    0
+  );
+
+  const expenseByCategory = {};
+
+  annualExpenses.forEach(item => {
+    expenseByCategory[item.category] =
+      (expenseByCategory[item.category] || 0) + Number(item.amount);
+  });
+
+  const annualExpenseList = Object.entries(expenseByCategory)
+    .sort((a, b) => b[1] - a[1]);
     const monthlyIncomes = Array.from({ length: 12 }, (_, index) => {
     const month = index + 1;
     const monthString = String(month).padStart(2, "0");
@@ -1405,7 +1424,29 @@ async function openBudget() {
     1,
     ...monthlyIncomes.map(item => item.income)
   );
+  const monthlyExpensesForChart = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const monthString = String(month).padStart(2, "0");
 
+    const startDate = `${selectedYear}-${monthString}-01`;
+    const endDate = month === 12
+      ? `${selectedYear + 1}-01-01`
+      : `${selectedYear}-${String(month + 1).padStart(2, "0")}-01`;
+
+    const expense = annualExpenses
+      .filter(item =>
+        item.transaction_date >= startDate &&
+        item.transaction_date < endDate
+      )
+      .reduce((sum, item) => sum + Number(item.amount), 0);
+
+    return { month, expense };
+  });
+
+  const maxMonthlyExpense = Math.max(
+    1,
+    ...monthlyExpensesForChart.map(item => item.expense)
+  );
   app.innerHTML = `
     <main class="shell">
       <button class="back-button" id="budgetBack">← 홈으로</button>
@@ -1462,7 +1503,93 @@ async function openBudget() {
           </div>
         `).join("")}
       </section>
+      <section class="card">
+        <h2>💸 ${selectedYear}년 연간 지출</h2>
 
+        <div style="
+          background:#f7f4fb;
+          border-radius:14px;
+          padding:18px;
+          margin-top:14px;
+        ">
+          <p style="color:#888; font-size:13px; margin:0;">
+            실제 지출 총액
+          </p>
+          <h1 style="color:#75618f; margin:8px 0 0;">
+            ${annualExpenseTotal.toLocaleString("ko-KR")}원
+          </h1>
+        </div>
+
+        <h3 style="margin-top:22px;">지출 항목별 합계</h3>
+
+        ${annualExpenseList.length > 0
+          ? annualExpenseList.map(([category, amount]) => `
+            <div style="
+              display:flex;
+              justify-content:space-between;
+              padding:12px 0;
+              border-bottom:1px solid #eee;
+            ">
+              <span>${esc(category)}</span>
+              <strong>${amount.toLocaleString("ko-KR")}원</strong>
+            </div>
+          `).join("")
+          : '<p style="color:#999;">아직 등록된 지출이 없어.</p>'
+        }
+      </section>
+            <section class="card">
+        <h2>📉 월별 지출 그래프</h2>
+        <p style="color:#888; font-size:13px;">
+          매월 실제로 지출한 금액이야.
+        </p>
+
+        <div style="
+          display:flex;
+          align-items:flex-end;
+          gap:8px;
+          height:190px;
+          margin-top:24px;
+          padding:10px 0;
+          border-bottom:1px solid #eee;
+        ">
+          ${monthlyExpensesForChart.map(item => `
+            <div style="
+              flex:1;
+              display:flex;
+              flex-direction:column;
+              align-items:center;
+              justify-content:flex-end;
+              height:100%;
+              min-width:0;
+            ">
+              <span style="
+                font-size:10px;
+                color:#888;
+                margin-bottom:5px;
+                white-space:nowrap;
+              ">
+                ${item.expense > 0
+                  ? item.expense.toLocaleString("ko-KR")
+                  : ""}
+              </span>
+
+              <div style="
+                width:100%;
+                max-width:28px;
+                height:${item.expense > 0
+                  ? Math.max(5, item.expense / maxMonthlyExpense * 125)
+                  : 2}px;
+                background:#d6b6c8;
+                border-radius:6px 6px 0 0;
+              "></div>
+
+              <span style="font-size:11px; color:#777; margin-top:8px;">
+                ${item.month}월
+              </span>
+            </div>
+          `).join("")}
+        </div>
+      </section>
       <section class="card">
         <h2>📈 월별 부수입 그래프</h2>
         <p style="color:#888; font-size:13px;">
