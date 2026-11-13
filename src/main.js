@@ -1587,6 +1587,7 @@ async function openBudget() {
 
 
 
+
 async function openBudgetMonth(month) {
   if (!currentFamilyId) {
     alert("가족 공간을 확인할 수 없어요.");
@@ -1666,6 +1667,80 @@ async function openBudgetMonth(month) {
       </section>
 
       <section class="card">
+        <h2>➕ 지출 입력</h2>
+        <p style="color:#888; font-size:13px;">
+          이 달에 실제로 결제한 지출을 기록해 줘.
+        </p>
+
+        <form id="expenseForm">
+          <label>지출 항목</label>
+          <select
+            id="expenseCategory"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px; background:white;"
+          >
+            <option value="">항목 선택</option>
+            <option value="주거비">주거비</option>
+            <option value="관리비·가스">관리비·가스</option>
+            <option value="보험료">보험료</option>
+            <option value="청약저축">청약저축</option>
+            <option value="식비·생필품">식비·생필품</option>
+            <option value="OTT">OTT</option>
+            <option value="보육료">보육료</option>
+            <option value="어린이집 추가납부">어린이집 추가납부</option>
+            <option value="장난감·용품">장난감·용품</option>
+            <option value="비상금 사용">비상금 사용</option>
+            <option value="기타">기타</option>
+          </select>
+
+          <label>상세 내용</label>
+          <input
+            id="expenseTitle"
+            type="text"
+            placeholder="예: 마트 장보기, 아파트 대출"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <label>결제 금액</label>
+          <input
+            id="expenseAmount"
+            type="number"
+            min="1"
+            placeholder="예: 85000"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <label>결제일</label>
+          <input
+            id="expenseDate"
+            type="date"
+            value="${startDate}"
+            min="${startDate}"
+            max="${endDate === `${year + 1}-01-01` ? `${year}-12-31` : `${year}-${String(month).padStart(2, "0")}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`}"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <label>메모 (선택)</label>
+          <input
+            id="expenseMemo"
+            type="text"
+            placeholder="추가로 기록할 내용"
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <button
+            type="submit"
+            style="width:100%; padding:14px; border:0; border-radius:12px; background:#8c78ad; color:white; font-size:15px;"
+          >
+            지출 저장하기
+          </button>
+        </form>
+      </section>
+
+      <section class="card">
         <h2>🧾 ${month}월 지출 내역</h2>
 
         ${
@@ -1693,7 +1768,49 @@ async function openBudgetMonth(month) {
   `;
 
   document.querySelector("#monthBack").onclick = openBudget;
+
+  document.querySelector("#expenseForm").onsubmit = async (event) => {
+    event.preventDefault();
+
+    const category = document.querySelector("#expenseCategory").value;
+    const title = document.querySelector("#expenseTitle").value.trim();
+    const amount = Number(document.querySelector("#expenseAmount").value);
+    const transactionDate = document.querySelector("#expenseDate").value;
+    const memo = document.querySelector("#expenseMemo").value.trim();
+
+    if (!category || !title || amount <= 0 || !transactionDate) {
+      alert("지출 항목, 내용, 금액, 결제일을 확인해 줘.");
+      return;
+    }
+
+    if (transactionDate < startDate || transactionDate >= endDate) {
+      alert("선택한 달에 해당하는 결제일을 입력해 줘.");
+      return;
+    }
+
+    const { error: insertError } = await supabase
+      .from("budget_transactions")
+      .insert({
+        family_id: currentFamilyId,
+        type: "expense",
+        category,
+        title,
+        amount,
+        transaction_date: transactionDate,
+        is_received: true,
+        memo: memo || null
+      });
+
+    if (insertError) {
+      alert("지출을 저장하지 못했어요: " + insertError.message);
+      return;
+    }
+
+    alert("지출이 저장됐어!");
+    openBudgetMonth(month);
+  };
 }
+
 
 async function openHotDeals() {
   const key = "hot-deals";
