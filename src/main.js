@@ -1743,7 +1743,7 @@ async function openBudgetMonth(month) {
       <section class="card">
         <h2>🧾 ${month}월 지출 내역</h2>
 
-        ${
+               ${
           expenses && expenses.length
             ? expenses.map(item => `
               <div style="padding:13px 0; border-bottom:1px solid #eee;">
@@ -1759,6 +1759,13 @@ async function openBudgetMonth(month) {
                     ? `<p style="font-size:13px; color:#888;">${esc(item.memo)}</p>`
                     : ""
                 }
+                <button
+                  type="button"
+                  data-delete-expense="${esc(item.id)}"
+                  style="margin-top:8px; padding:7px 12px; border:1px solid #eee; border-radius:8px; background:white; color:#c66;"
+                >
+                  삭제
+                </button>
               </div>
             `).join("")
             : `<p style="color:#999;">아직 등록된 지출이 없어. 이 달의 예산은 ${monthlyBudget.toLocaleString("ko-KR")}원이야.</p>`
@@ -1766,8 +1773,32 @@ async function openBudgetMonth(month) {
       </section>
     </main>
   `;
-
+  
   document.querySelector("#monthBack").onclick = openBudget;
+    document.querySelectorAll("[data-delete-expense]").forEach(button => {
+    button.onclick = async () => {
+      const expenseId = button.dataset.deleteExpense;
+
+      if (!confirm("이 지출 내역을 삭제할까? 삭제하면 되돌릴 수 없어.")) {
+        return;
+      }
+
+      const { error: deleteError } = await supabase
+        .from("budget_transactions")
+        .delete()
+        .eq("id", expenseId)
+        .eq("family_id", currentFamilyId)
+        .eq("type", "expense");
+
+      if (deleteError) {
+        alert("지출을 삭제하지 못했어요: " + deleteError.message);
+        return;
+      }
+
+      alert("지출 내역을 삭제했어.");
+      openBudgetMonth(month);
+    };
+  });
 
   document.querySelector("#expenseForm").onsubmit = async (event) => {
     event.preventDefault();
