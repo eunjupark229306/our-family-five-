@@ -1357,6 +1357,55 @@ async function openBudget() {
     };
   });
 
+    const annualIncomes = (transactions || []).filter(item =>
+    item.type === "income" &&
+    item.is_received &&
+    item.transaction_date >= `${selectedYear}-01-01` &&
+    item.transaction_date < `${selectedYear + 1}-01-01`
+  );
+
+  const annualIncomeTotal = annualIncomes.reduce(
+    (sum, item) => sum + Number(item.amount),
+    0
+  );
+
+  const incomeByCategory = {
+    "기프티콘 판매": 0,
+    "앱테크": 0,
+    "공모주": 0,
+    "기타 수입": 0
+  };
+
+  annualIncomes.forEach(item => {
+    if (incomeByCategory[item.category] !== undefined) {
+      incomeByCategory[item.category] += Number(item.amount);
+    }
+  });
+
+    const monthlyIncomes = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const monthString = String(month).padStart(2, "0");
+
+    const startDate = `${selectedYear}-${monthString}-01`;
+    const endDate = month === 12
+      ? `${selectedYear + 1}-01-01`
+      : `${selectedYear}-${String(month + 1).padStart(2, "0")}-01`;
+
+    const income = annualIncomes
+      .filter(item =>
+        item.transaction_date >= startDate &&
+        item.transaction_date < endDate
+      )
+      .reduce((sum, item) => sum + Number(item.amount), 0);
+
+    return { month, income };
+  });
+
+  const maxMonthlyIncome = Math.max(
+    1,
+    ...monthlyIncomes.map(item => item.income)
+  );
+
   app.innerHTML = `
     <main class="shell">
       <button class="back-button" id="budgetBack">← 홈으로</button>
@@ -1380,6 +1429,88 @@ async function openBudget() {
         <p>월 기본 예산 2,132,000원</p>
         <p>연간 계획 예산 25,744,000원</p>
         <p>비상금 월 적립 200,000원</p>
+      </section>
+
+      <section class="card">
+        <h2>💰 ${selectedYear}년 연간 부수입</h2>
+
+        <div style="
+          background:#f7f4fb;
+          border-radius:14px;
+          padding:18px;
+          margin-top:14px;
+        ">
+          <p style="color:#888; font-size:13px; margin:0;">
+            실제 입금된 부수입 총액
+          </p>
+          <h1 style="color:#75618f; margin:8px 0 0;">
+            ${annualIncomeTotal.toLocaleString("ko-KR")}원
+          </h1>
+        </div>
+
+        <h3 style="margin-top:22px;">수입 종류별 합계</h3>
+
+        ${Object.entries(incomeByCategory).map(([category, amount]) => `
+          <div style="
+            display:flex;
+            justify-content:space-between;
+            padding:12px 0;
+            border-bottom:1px solid #eee;
+          ">
+            <span>${esc(category)}</span>
+            <strong>${amount.toLocaleString("ko-KR")}원</strong>
+          </div>
+        `).join("")}
+      </section>
+
+      <section class="card">
+        <h2>📈 월별 부수입 그래프</h2>
+        <p style="color:#888; font-size:13px;">
+          매월 실제로 입금된 부수입이야.
+        </p>
+
+        <div style="
+          display:flex;
+          align-items:flex-end;
+          gap:8px;
+          height:190px;
+          margin-top:24px;
+          padding:10px 0;
+          border-bottom:1px solid #eee;
+        ">
+          ${monthlyIncomes.map(item => `
+            <div style="
+              flex:1;
+              display:flex;
+              flex-direction:column;
+              align-items:center;
+              justify-content:flex-end;
+              height:100%;
+              min-width:0;
+            ">
+              <span style="
+                font-size:10px;
+                color:#888;
+                margin-bottom:5px;
+                white-space:nowrap;
+              ">
+                ${item.income > 0 ? item.income.toLocaleString("ko-KR") : ""}
+              </span>
+
+              <div style="
+                width:100%;
+                max-width:28px;
+                height:${item.income > 0 ? Math.max(5, item.income / maxMonthlyIncome * 125) : 2}px;
+                background:#b7a4d3;
+                border-radius:6px 6px 0 0;
+              "></div>
+
+              <span style="font-size:11px; color:#777; margin-top:8px;">
+                ${item.month}월
+              </span>
+            </div>
+          `).join("")}
+        </div>
       </section>
 
       <section class="card">
