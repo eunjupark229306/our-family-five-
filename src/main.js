@@ -1629,12 +1629,41 @@ async function openBudgetMonth(month) {
     return;
   }
 
+  const { data: incomes, error: incomeError } = await supabase
+    .from("budget_transactions")
+    .select("*")
+    .eq("family_id", currentFamilyId)
+    .eq("type", "income")
+    .eq("is_received", true)
+    .gte("transaction_date", startDate)
+    .lt("transaction_date", endDate)
+    .order("transaction_date", { ascending: false });
+
+   if (incomeError) {
+    alert("월별 수입을 불러오지 못했어요: " + incomeError.message);
+    return;
+  }
+
   const totalExpense = (expenses || []).reduce(
     (sum, item) => sum + Number(item.amount),
     0
   );
 
+  const totalIncome = (incomes || []).reduce(
+    (sum, item) => sum + Number(item.amount),
+    0
+  );
+
   const remaining = monthlyBudget - totalExpense;
+  const categoryExpenses = {};
+
+  (expenses || []).forEach(item => {
+    categoryExpenses[item.category] =
+      (categoryExpenses[item.category] || 0) + Number(item.amount);
+  });
+
+  const categoryExpenseList = Object.entries(categoryExpenses)
+    .sort((a, b) => b[1] - a[1]);
 
   app.innerHTML = `
     <main class="shell">
@@ -1646,14 +1675,24 @@ async function openBudgetMonth(month) {
         <p>우리 가족의 월별 살림 기록</p>
       </header>
 
-      <section class="card">
+            <section class="card">
         <h2>이번 달 예산</h2>
         <h1>${monthlyBudget.toLocaleString("ko-KR")}원</h1>
         <p>월 기본 예산</p>
       </section>
 
       <section class="card">
-        <h2>이번 달 실제 지출</h2>
+        <h2>💰 이번 달 실제 수입</h2>
+        <h1 style="color:#5c9b7a;">
+          +${totalIncome.toLocaleString("ko-KR")}원
+        </h1>
+        <p style="color:#888; font-size:13px;">
+          실제 입금된 수입 합계
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>💸 이번 달 실제 지출</h2>
         <h1>${totalExpense.toLocaleString("ko-KR")}원</h1>
         <p>남은 예산</p>
         <h2 style="color:${remaining < 0 ? "#d65b5b" : "#75618f"};">
@@ -1683,6 +1722,7 @@ async function openBudgetMonth(month) {
             <option value="주거비">주거비</option>
             <option value="관리비·가스">관리비·가스</option>
             <option value="보험료">보험료</option>
+            <option value="통신비">통신비</option>
             <option value="청약저축">청약저축</option>
             <option value="식비·생필품">식비·생필품</option>
             <option value="OTT">OTT</option>
@@ -1741,6 +1781,128 @@ async function openBudgetMonth(month) {
       </section>
 
       <section class="card">
+            <section class="card">
+
+              <section class="card">
+        <h2>💰 수입 입력</h2>
+        <p style="color:#888; font-size:13px;">
+          실제로 입금된 부수입을 기록해 줘.
+        </p>
+
+        <form id="incomeForm">
+          <label>수입 종류</label>
+          <select
+            id="incomeCategory"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px; background:white;"
+          >
+            <option value="">수입 종류 선택</option>
+            <option value="기프티콘 판매">기프티콘 판매</option>
+            <option value="앱테크">앱테크</option>
+            <option value="공모주">공모주</option>
+            <option value="기타 수입">기타 수입</option>
+          </select>
+
+          <label>상세 내용</label>
+          <input
+            id="incomeTitle"
+            type="text"
+            placeholder="예: 기프티콘 판매, 공모주 수익"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <label>수입 금액</label>
+          <input
+            id="incomeAmount"
+            type="number"
+            min="1"
+            placeholder="예: 15000"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <label>입금일</label>
+          <input
+            id="incomeDate"
+            type="date"
+            value="${startDate}"
+            min="${startDate}"
+            max="${endDate === `${year + 1}-01-01` ? `${year}-12-31` : `${year}-${String(month).padStart(2, "0")}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`}"
+            required
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <label>메모 (선택)</label>
+          <input
+            id="incomeMemo"
+            type="text"
+            placeholder="추가로 기록할 내용"
+            style="width:100%; box-sizing:border-box; margin:8px 0 16px; padding:12px; border:1px solid #ddd; border-radius:10px;"
+          >
+
+          <button
+            type="submit"
+            style="width:100%; padding:14px; border:0; border-radius:12px; background:#8c78ad; color:white; font-size:15px;"
+          >
+            수입 저장하기
+          </button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>💰 ${month}월 수입 내역</h2>
+
+        ${
+          incomes && incomes.length
+            ? incomes.map(item => `
+              <div style="padding:13px 0; border-bottom:1px solid #eee;">
+                <div style="display:flex; justify-content:space-between; gap:10px;">
+                  <strong>${esc(item.title)}</strong>
+                  <strong style="color:#5c9b7a;">
+                    +${Number(item.amount).toLocaleString("ko-KR")}원
+                  </strong>
+                </div>
+                <p style="font-size:13px; color:#888; margin:6px 0 0;">
+                  ${esc(item.category)} · ${esc(item.transaction_date)}
+                </p>
+                ${
+                  item.memo
+                    ? `<p style="font-size:13px; color:#888;">${esc(item.memo)}</p>`
+                    : ""
+                }
+              </div>
+                <button
+                  type="button"
+                  data-delete-income="${esc(item.id)}"
+                  style="margin-top:8px; padding:7px 12px; border:1px solid #eee; border-radius:8px; background:white; color:#c66;"
+                >
+                  삭제
+                </button>
+            `).join("")
+            : `<p style="color:#999;">아직 등록된 수입이 없어.</p>`
+        }
+      </section>
+        
+        <h2>📊 항목별 지출 합계</h2>
+        ${
+          categoryExpenseList.length
+            ? categoryExpenseList.map(([category, amount]) => `
+              <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:12px 0;
+                border-bottom:1px solid #eee;
+                gap:10px;
+              ">
+                <span>${esc(category)}</span>
+                <strong>${amount.toLocaleString("ko-KR")}원</strong>
+              </div>
+            `).join("")
+            : `<p style="color:#999;">아직 지출 내역이 없어.</p>`
+        }
+      </section>
         <h2>🧾 ${month}월 지출 내역</h2>
 
                ${
@@ -1800,6 +1962,73 @@ async function openBudgetMonth(month) {
     };
   });
 
+
+    document.querySelectorAll("[data-delete-income]").forEach(button => {
+    button.onclick = async () => {
+      const incomeId = button.dataset.deleteIncome;
+
+      if (!confirm("이 수입 내역을 삭제할까? 삭제하면 되돌릴 수 없어.")) {
+        return;
+      }
+
+      const { error: deleteError } = await supabase
+        .from("budget_transactions")
+        .delete()
+        .eq("id", incomeId)
+        .eq("family_id", currentFamilyId)
+        .eq("type", "income");
+
+      if (deleteError) {
+        alert("수입을 삭제하지 못했어요: " + deleteError.message);
+        return;
+      }
+
+      alert("수입 내역을 삭제했어.");
+      openBudgetMonth(month);
+    };
+  });
+  document.querySelector("#incomeForm").onsubmit = async (event) => {
+    event.preventDefault();
+
+    const category = document.querySelector("#incomeCategory").value;
+    const title = document.querySelector("#incomeTitle").value.trim();
+    const amount = Number(document.querySelector("#incomeAmount").value);
+    const transactionDate = document.querySelector("#incomeDate").value;
+    const memo = document.querySelector("#incomeMemo").value.trim();
+
+    if (!category || !title || amount <= 0 || !transactionDate) {
+      alert("수입 종류, 내용, 금액, 입금일을 확인해 줘.");
+      return;
+    }
+
+    if (transactionDate < startDate || transactionDate >= endDate) {
+      alert("선택한 달에 해당하는 입금일을 입력해 줘.");
+      return;
+    }
+
+    const { error: insertError } = await supabase
+      .from("budget_transactions")
+      .insert({
+        family_id: currentFamilyId,
+        type: "income",
+        category,
+        title,
+        amount,
+        transaction_date: transactionDate,
+        is_received: true,
+        received_date: transactionDate,
+        memo: memo || null
+      });
+
+    if (insertError) {
+      alert("수입을 저장하지 못했어요: " + insertError.message);
+      return;
+    }
+
+    alert("수입이 저장됐어!");
+    openBudgetMonth(month);
+  };
+  
   document.querySelector("#expenseForm").onsubmit = async (event) => {
     event.preventDefault();
 
