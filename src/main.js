@@ -2349,7 +2349,7 @@ async function openCardsMembership() {
   const previousDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
   const previousMonth = monthKey(previousDate);
 
-  const openCardIds = new Set(records.cards.length ? [records.cards[0].id] : []);
+  const openCardIds = new Set();
 
   function money(value) {
     return Number(value || 0).toLocaleString("ko-KR");
@@ -2440,23 +2440,40 @@ async function openCardsMembership() {
   }
 
   function benefitRow(benefit, card) {
-    const tier = getSelectedTier(card);
-    const cap = getCap(benefit, tier.id);
-    const used = getUsed(benefit, currentMonth);
-    const remaining = getRemaining(benefit, tier.id, currentMonth);
+  const tier = getSelectedTier(card);
+  const cap = getCap(benefit, tier.id);
+  const used = getUsed(benefit, currentMonth);
+  const remaining = getRemaining(benefit, tier.id, currentMonth);
 
-    return `
-      <div class="benefit-entry-row">
-        <div class="benefit-entry-heading">
+  return `
+    <details class="benefit-entry-row">
+      <summary class="benefit-accordion-summary">
+        <span class="benefit-accordion-title">
           <strong>${esc(benefit.name || "혜택")}</strong>
+          <small>
+            할인율 ${esc(benefit.rate || 0)}%
+            · 한도 ${cap === null ? "미설정" : money(cap) + "원"}
+            · 사용 ${money(used)}원
+          </small>
+        </span>
+        <span class="benefit-accordion-remaining">
+          잔여 ${remaining === null ? "미설정" : money(remaining) + "원"}
+        </span>
+      </summary>
+
+      <div class="benefit-accordion-content">
+        <div class="benefit-entry-heading">
+          <strong>혜택 상세 설정</strong>
           <button type="button" class="small-button danger" data-delete-benefit="${esc(benefit.id)}" data-card-id="${esc(card.id)}">삭제</button>
         </div>
+
         <div class="benefit-summary">
           <span>할인율 ${esc(benefit.rate || 0)}%</span>
           <span>이번 달 한도 ${cap === null ? "미설정" : money(cap) + "원"}</span>
           <span>사용 ${money(used)}원</span>
           <span>잔여 ${remaining === null ? "미설정" : money(remaining) + "원"}</span>
         </div>
+
         <div class="benefit-form-grid">
           <label>이번 달 사용한 할인 금액 (원)
             <input type="number" min="0" step="1" value="${used}" data-used-input="${esc(benefit.id)}" data-card-id="${esc(card.id)}">
@@ -2465,12 +2482,15 @@ async function openCardsMembership() {
             <input type="number" min="0" step="0.1" value="${esc(benefit.rate || "")}" data-rate-input="${esc(benefit.id)}" data-card-id="${esc(card.id)}">
           </label>
         </div>
+
         <label>혜택 이름
           <input value="${esc(benefit.name || "")}" data-benefit-name="${esc(benefit.id)}" data-card-id="${esc(card.id)}">
         </label>
+
         <label>세부 조건 / 메모
           <textarea rows="2" data-benefit-memo="${esc(benefit.id)}" data-card-id="${esc(card.id)}">${esc(benefit.memo || "")}</textarea>
         </label>
+
         <div class="tier-cap-list">
           <strong>실적 구간별 월 할인 한도</strong>
           ${card.tiers.map(tierItem => `
@@ -2485,9 +2505,9 @@ async function openCardsMembership() {
           `).join("")}
         </div>
       </div>
-    `;
-  }
-
+    </details>
+  `;
+}
   function cardHtml(card, index) {
     const tier = getSelectedTier(card);
     const isOpen = openCardIds.has(card.id);
