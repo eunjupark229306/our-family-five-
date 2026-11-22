@@ -2332,6 +2332,7 @@ async function openBudgetMonth(month) {
   };
 }
 
+
 // ===== 카드 / 멤버십 관리 =====
 async function openCardsMembership() {
   const key = "cards-memberships-v1";
@@ -2339,11 +2340,7 @@ async function openCardsMembership() {
 
   if (data === undefined) return;
 
-  let records = data || {
-    cards: [],
-    memberships: []
-  };
-
+  let records = data || { cards: [], memberships: [] };
   records.cards = records.cards || [];
   records.memberships = records.memberships || [];
 
@@ -2353,20 +2350,68 @@ async function openCardsMembership() {
     return Number(value || 0).toLocaleString("ko-KR");
   }
 
+  function newId() {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function getTotalUsed() {
+    return records.cards.reduce((sum, card) =>
+      sum + (card.benefits || []).reduce((total, benefit) =>
+        total + Number(benefit.usedByMonth?.[currentMonth] || 0), 0
+      ), 0
+    );
+  }
+
   async function saveAndRender(message) {
     const ok = await saveSection(key, records);
-
     if (ok) {
       if (message) showMessage(message);
       render();
     }
   }
 
+  function benefitRow() {
+    return `
+      <div class="benefit-entry-row">
+        <div class="benefit-entry-heading">
+          <strong>혜택 항목</strong>
+          <button type="button" class="ghost" data-remove-row>삭제</button>
+        </div>
+
+        <label>혜택 이름
+          <input name="benefitName" placeholder="예: 공과금 10% 할인" required>
+        </label>
+
+        <div class="benefit-form-grid">
+          <label>할인율 (%)
+            <input name="rate" type="number" min="0" step="0.1" placeholder="10">
+          </label>
+          <label>월 할인 한도 (원)
+            <input name="monthlyCap" type="number" min="0" step="1" placeholder="3000">
+          </label>
+        </div>
+
+        <label>전월 실적 / 이용 조건
+          <input name="condition" placeholder="예: 전월 30만 원 이상">
+        </label>
+
+        <label>세부 조건 / 메모
+          <textarea name="memo" rows="2" placeholder="예: 도시가스 최대 5,000원"></textarea>
+        </label>
+
+        <label>이번 달 사용한 할인 금액 (원)
+          <input name="used" type="number" min="0" step="1" value="0">
+        </label>
+      </div>
+    `;
+  }
+
   function render() {
     const totalMembershipFee = records.memberships.reduce(
-      (sum, item) => sum + Number(item.fee || 0),
-      0
+      (sum, item) => sum + Number(item.fee || 0), 0
     );
+
+    const totalUsed = getTotalUsed();
 
     app.innerHTML = `
       <main class="shell">
@@ -2381,14 +2426,23 @@ async function openCardsMembership() {
         <section class="card benefit-summary">
           <p>이번 달 관리 기준</p>
           <strong>${currentMonth}</strong>
-          <small>등록된 멤버십 비용 합계 · ${money(totalMembershipFee)}원</small>
+          <div class="benefit-summary-grid">
+            <div>
+              <small>이번 달 실제 할인 혜택합계</small>
+              <b>${money(totalUsed)}원</b>
+            </div>
+            <div>
+              <small>등록된 멤버십 비용 합계</small>
+              <b>${money(totalMembershipFee)}원</b>
+            </div>
+          </div>
         </section>
 
         <section class="card benefit-section">
           <h2>💳 카드 등록</h2>
           <form id="cardForm">
             <label>카드 이름
-              <input name="name" placeholder="예: 현대카드, 삼성카드" required>
+              <input name="name" placeholder="예: 신한카드, 현대카드" required>
             </label>
             <button class="primary-button" type="submit">카드 추가하기</button>
           </form>
@@ -2402,14 +2456,11 @@ async function openCardsMembership() {
                 </div>
 
                 <div class="benefit-card-content">
-                  ${card.benefits?.length ? card.benefits.map(benefit => {
+                  ${(card.benefits || []).length ? card.benefits.map(benefit => {
                     const used = Number(benefit.usedByMonth?.[currentMonth] || 0);
                     const cap = benefit.monthlyCap === "" || benefit.monthlyCap == null
-                      ? null
-                      : Number(benefit.monthlyCap);
-                    const remaining = cap === null
-                      ? null
-                      : Math.max(0, cap - used);
+                      ? null : Number(benefit.monthlyCap);
+                    const remaining = cap === null ? null : Math.max(0, cap - used);
 
                     const history = Object.entries(benefit.usedByMonth || {})
                       .filter(([month, amount]) => month !== currentMonth && Number(amount) > 0)
@@ -2432,13 +2483,9 @@ async function openCardsMembership() {
 
                         <div class="benefit-usage">
                           <label>이번 달 사용한 할인 금액
-                            <input
-                              type="number"
-                              min="0"
-                              step="1"
+                            <input type="number" min="0" step="1"
                               value="${used}"
-                              data-benefit-usage="${esc(benefit.id)}"
-                            >
+                              data-benefit-usage="${esc(benefit.id)}">
                           </label>
 
                           <div class="benefit-remaining">
@@ -2450,15 +2497,15 @@ async function openCardsMembership() {
                         ${history.length ? `
                           <details class="benefit-history">
                             <summary>지난달 사용 기록 보기</summary>
-                            ${history.map(([month, amount]) => `
-                              <p>${esc(month)} · ${money(amount)}원 사용</p>
-                            `).join("")}
+                            ${history.map(([month, amount]) =>
+                              `<p>${esc(month)} · ${money(amount)}원 사용</p>`
+                            ).join("")}
                           </details>
                         ` : ""}
                       </div>
                     `;
                   }).join("") : `
-                    <p class="benefit-empty">아직 등록된 혜택이 없어. 아래에서 혜택을 추가해 줘.</p>
+                    <p class="benefit-empty">등록된 혜택이 없어. 아래에서 혜택을 추가해 줘.</p>
                   `}
                 </div>
               </article>
@@ -2475,35 +2522,23 @@ async function openCardsMembership() {
             <label>적용할 카드
               <select name="cardId" required>
                 <option value="">카드를 선택해 줘</option>
-                ${records.cards.map(card => `
-                  <option value="${esc(card.id)}">${esc(card.name)}</option>
-                `).join("")}
+                ${records.cards.map(card =>
+                  `<option value="${esc(card.id)}">${esc(card.name)}</option>`
+                ).join("")}
               </select>
             </label>
 
-            <label>혜택 이름
-              <input name="name" placeholder="예: 토스페이 10% 할인" required>
-            </label>
-
-            <div class="benefit-form-grid">
-              <label>할인율 (%)
-                <input name="rate" type="number" min="0" step="0.1" placeholder="예: 10">
-              </label>
-
-              <label>월 할인 한도 (원)
-                <input name="monthlyCap" type="number" min="0" step="1" placeholder="예: 10000">
-              </label>
+            <div id="benefitRows">
+              ${benefitRow()}
             </div>
 
-            <label>전월 실적 / 이용 조건
-              <input name="condition" placeholder="예: 전월 30만 원 이상">
-            </label>
+            <button type="button" class="soft-button" id="addBenefitRow">
+              ＋ 혜택 항목 추가
+            </button>
 
-            <label>세부 조건 / 메모
-              <textarea name="memo" rows="3" placeholder="예: 병원·약국 최대 1,000원 / 도시가스 최대 5,000원"></textarea>
-            </label>
-
-            <button class="primary-button" type="submit">혜택 등록하기</button>
+            <button class="primary-button" type="submit">
+              혜택 모두 등록하기
+            </button>
           </form>
         </section>
 
@@ -2518,9 +2553,8 @@ async function openCardsMembership() {
 
             <div class="benefit-form-grid">
               <label>이용료 (원)
-                <input name="fee" type="number" min="0" step="1" placeholder="예: 4900" required>
+                <input name="fee" type="number" min="0" step="1" placeholder="4900" required>
               </label>
-
               <label>결제 주기
                 <select name="period">
                   <option value="월">월간</option>
@@ -2549,7 +2583,8 @@ async function openCardsMembership() {
                   <button class="ghost" data-delete-membership="${esc(item.id)}">삭제</button>
                 </div>
                 <p class="membership-fee">
-                  ${item.period === "무료" ? "무료" : money(item.fee) + "원 / " + (item.period === "연" ? "연" : "월")}
+                  ${item.period === "무료" ? "무료" :
+                    money(item.fee) + "원 / " + (item.period === "연" ? "연" : "월")}
                 </p>
                 ${item.benefits ? `<p>${esc(item.benefits)}</p>` : ""}
                 ${item.memo ? `<small>${esc(item.memo)}</small>` : ""}
@@ -2566,19 +2601,28 @@ async function openCardsMembership() {
 
     document.querySelector("#cardForm").onsubmit = async event => {
       event.preventDefault();
-
       const form = new FormData(event.target);
       const name = String(form.get("name") || "").trim();
-
       if (!name) return;
 
-      records.cards.push({
-        id: String(Date.now()),
-        name,
-        benefits: []
-      });
-
+      records.cards.push({ id: newId(), name, benefits: [] });
       await saveAndRender("카드를 등록했어!");
+    };
+
+    document.querySelector("#addBenefitRow").onclick = () => {
+      document.querySelector("#benefitRows").insertAdjacentHTML("beforeend", benefitRow());
+    };
+
+    document.querySelector("#benefitRows").onclick = event => {
+      const button = event.target.closest("[data-remove-row]");
+      if (!button) return;
+
+      const rows = document.querySelectorAll(".benefit-entry-row");
+      if (rows.length <= 1) {
+        showMessage("혜택 입력 칸은 최소 한 개가 필요해.");
+        return;
+      }
+      button.closest(".benefit-entry-row").remove();
     };
 
     document.querySelector("#benefitForm").onsubmit = async event => {
@@ -2586,37 +2630,44 @@ async function openCardsMembership() {
 
       const form = new FormData(event.target);
       const card = records.cards.find(item => item.id === form.get("cardId"));
+      if (!card) return showMessage("먼저 카드를 등록하고 선택해 줘.");
 
-      if (!card) {
-        return showMessage("먼저 카드를 등록하고 선택해 줘.");
+      const rows = [...document.querySelectorAll(".benefit-entry-row")];
+
+      for (const row of rows) {
+        const name = row.querySelector('[name="benefitName"]').value.trim();
+        if (!name) return showMessage("혜택 이름을 입력해 줘.");
       }
 
-      const name = String(form.get("name") || "").trim();
-      if (!name) return;
+      card.benefits = card.benefits || [];
 
-      card.benefits.push({
-        id: String(Date.now()),
-        name,
-        rate: form.get("rate") || "",
-        monthlyCap: form.get("monthlyCap") || "",
-        condition: String(form.get("condition") || "").trim(),
-        memo: String(form.get("memo") || "").trim(),
-        usedByMonth: {}
+      rows.forEach(row => {
+        const value = name => row.querySelector(`[name="${name}"]`).value;
+
+        card.benefits.push({
+          id: newId(),
+          name: value("benefitName").trim(),
+          rate: value("rate") || "",
+          monthlyCap: value("monthlyCap") || "",
+          condition: value("condition").trim(),
+          memo: value("memo").trim(),
+          usedByMonth: {
+            [currentMonth]: Math.max(0, Number(value("used") || 0))
+          }
+        });
       });
 
-      await saveAndRender("카드 혜택을 등록했어!");
+      await saveAndRender("카드 혜택을 모두 등록했어!");
     };
 
     document.querySelector("#membershipForm").onsubmit = async event => {
       event.preventDefault();
-
       const form = new FormData(event.target);
       const name = String(form.get("name") || "").trim();
-
       if (!name) return;
 
       records.memberships.push({
-        id: String(Date.now()),
+        id: newId(),
         name,
         fee: Number(form.get("fee") || 0),
         period: form.get("period"),
@@ -2634,7 +2685,6 @@ async function openCardsMembership() {
 
         for (const card of records.cards) {
           const benefit = card.benefits?.find(item => item.id === benefitId);
-
           if (benefit) {
             benefit.usedByMonth = benefit.usedByMonth || {};
             benefit.usedByMonth[currentMonth] = value;
@@ -2649,11 +2699,7 @@ async function openCardsMembership() {
     document.querySelectorAll("[data-delete-card]").forEach(button => {
       button.onclick = async () => {
         if (!confirm("이 카드와 등록된 혜택을 삭제할까?")) return;
-
-        records.cards = records.cards.filter(
-          item => item.id !== button.dataset.deleteCard
-        );
-
+        records.cards = records.cards.filter(item => item.id !== button.dataset.deleteCard);
         await saveAndRender("카드를 삭제했어.");
       };
     });
@@ -2675,11 +2721,9 @@ async function openCardsMembership() {
     document.querySelectorAll("[data-delete-membership]").forEach(button => {
       button.onclick = async () => {
         if (!confirm("이 멤버십을 삭제할까?")) return;
-
         records.memberships = records.memberships.filter(
           item => item.id !== button.dataset.deleteMembership
         );
-
         await saveAndRender("멤버십을 삭제했어.");
       };
     });
@@ -2687,6 +2731,7 @@ async function openCardsMembership() {
 
   render();
 }
+
 
 async function openHotDeals() {
   const key = "hot-deals";
