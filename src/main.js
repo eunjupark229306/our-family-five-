@@ -20,6 +20,7 @@ const sections = [
   ["🔥", "핫딜정리", "우리 가족 알뜰 쇼핑 기록"],
   ["💰", "가계부", "가족의 수입과 지출"],
   ["🏡", "집안 관리", "우리 집 할 일과 관리"]
+  if (title === "카드/멤버십") return openCardsMembership();
 ];
 
 
@@ -2329,6 +2330,361 @@ async function openBudgetMonth(month) {
   };
 }
 
+// ===== 카드 / 멤버십 관리 =====
+async function openCardsMembership() {
+  const key = "cards-memberships-v1";
+  const data = await loadSection(key);
+
+  if (data === undefined) return;
+
+  let records = data || {
+    cards: [],
+    memberships: []
+  };
+
+  records.cards = records.cards || [];
+  records.memberships = records.memberships || [];
+
+  const currentMonth = monthKey();
+
+  function money(value) {
+    return Number(value || 0).toLocaleString("ko-KR");
+  }
+
+  async function saveAndRender(message) {
+    const ok = await saveSection(key, records);
+
+    if (ok) {
+      if (message) showMessage(message);
+      render();
+    }
+  }
+
+  function render() {
+    const totalMembershipFee = records.memberships.reduce(
+      (sum, item) => sum + Number(item.fee || 0),
+      0
+    );
+
+    app.innerHTML = `
+      <main class="shell">
+        <button class="back-button" id="cardsBack">← 홈으로</button>
+
+        <header class="page-header">
+          <div class="eyebrow">JEONG FAMILY · BENEFITS</div>
+          <h1>카드 / 멤버십 💳</h1>
+          <p>우리 가족의 카드 혜택과 멤버십을 한곳에서 관리해요.</p>
+        </header>
+
+        <section class="card benefit-summary">
+          <p>이번 달 관리 기준</p>
+          <strong>${currentMonth}</strong>
+          <small>등록된 멤버십 비용 합계 · ${money(totalMembershipFee)}원</small>
+        </section>
+
+        <section class="card benefit-section">
+          <h2>💳 카드 등록</h2>
+          <form id="cardForm">
+            <label>카드 이름
+              <input name="name" placeholder="예: 현대카드, 삼성카드" required>
+            </label>
+            <button class="primary-button" type="submit">카드 추가하기</button>
+          </form>
+
+          <div class="benefit-list">
+            ${records.cards.length ? records.cards.map(card => `
+              <article class="benefit-card">
+                <div class="benefit-card-title">
+                  <strong>${esc(card.name)}</strong>
+                  <button class="ghost" data-delete-card="${esc(card.id)}">삭제</button>
+                </div>
+
+                <div class="benefit-card-content">
+                  ${card.benefits?.length ? card.benefits.map(benefit => {
+                    const used = Number(benefit.usedByMonth?.[currentMonth] || 0);
+                    const cap = benefit.monthlyCap === "" || benefit.monthlyCap == null
+                      ? null
+                      : Number(benefit.monthlyCap);
+                    const remaining = cap === null
+                      ? null
+                      : Math.max(0, cap - used);
+
+                    const history = Object.entries(benefit.usedByMonth || {})
+                      .filter(([month, amount]) => month !== currentMonth && Number(amount) > 0)
+                      .sort((a, b) => b[0].localeCompare(a[0]));
+
+                    return `
+                      <div class="benefit-item">
+                        <div class="benefit-item-heading">
+                          <strong>${esc(benefit.name)}</strong>
+                          <button class="ghost" data-delete-benefit="${esc(benefit.id)}">삭제</button>
+                        </div>
+
+                        <p>
+                          할인율: ${benefit.rate ? esc(benefit.rate) + "%" : "미입력"}
+                          · 월 한도: ${cap === null ? "한도 없음" : money(cap) + "원"}
+                        </p>
+
+                        ${benefit.condition ? `<p>이용 조건: ${esc(benefit.condition)}</p>` : ""}
+                        ${benefit.memo ? `<p>세부 내용: ${esc(benefit.memo)}</p>` : ""}
+
+                        <div class="benefit-usage">
+                          <label>이번 달 사용한 할인 금액
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value="${used}"
+                              data-benefit-usage="${esc(benefit.id)}"
+                            >
+                          </label>
+
+                          <div class="benefit-remaining">
+                            <span>이번 달 남은 한도</span>
+                            <strong>${remaining === null ? "한도 없음" : money(remaining) + "원"}</strong>
+                          </div>
+                        </div>
+
+                        ${history.length ? `
+                          <details class="benefit-history">
+                            <summary>지난달 사용 기록 보기</summary>
+                            ${history.map(([month, amount]) => `
+                              <p>${esc(month)} · ${money(amount)}원 사용</p>
+                            `).join("")}
+                          </details>
+                        ` : ""}
+                      </div>
+                    `;
+                  }).join("") : `
+                    <p class="benefit-empty">아직 등록된 혜택이 없어. 아래에서 혜택을 추가해 줘.</p>
+                  `}
+                </div>
+              </article>
+            `).join("") : `
+              <p class="benefit-empty">등록된 카드가 없어. 먼저 카드를 추가해 줘.</p>
+            `}
+          </div>
+        </section>
+
+        <section class="card benefit-section">
+          <h2>＋ 카드 혜택 추가</h2>
+
+          <form id="benefitForm">
+            <label>적용할 카드
+              <select name="cardId" required>
+                <option value="">카드를 선택해 줘</option>
+                ${records.cards.map(card => `
+                  <option value="${esc(card.id)}">${esc(card.name)}</option>
+                `).join("")}
+              </select>
+            </label>
+
+            <label>혜택 이름
+              <input name="name" placeholder="예: 토스페이 10% 할인" required>
+            </label>
+
+            <div class="benefit-form-grid">
+              <label>할인율 (%)
+                <input name="rate" type="number" min="0" step="0.1" placeholder="예: 10">
+              </label>
+
+              <label>월 할인 한도 (원)
+                <input name="monthlyCap" type="number" min="0" step="1" placeholder="예: 10000">
+              </label>
+            </div>
+
+            <label>전월 실적 / 이용 조건
+              <input name="condition" placeholder="예: 전월 30만 원 이상">
+            </label>
+
+            <label>세부 조건 / 메모
+              <textarea name="memo" rows="3" placeholder="예: 병원·약국 최대 1,000원 / 도시가스 최대 5,000원"></textarea>
+            </label>
+
+            <button class="primary-button" type="submit">혜택 등록하기</button>
+          </form>
+        </section>
+
+        <section class="card benefit-section">
+          <h2>🎟️ 멤버십 관리</h2>
+          <p>멤버십별 이용료와 주요 혜택을 기록해 둬.</p>
+
+          <form id="membershipForm">
+            <label>멤버십 이름
+              <input name="name" placeholder="예: 네이버플러스 멤버십" required>
+            </label>
+
+            <div class="benefit-form-grid">
+              <label>이용료 (원)
+                <input name="fee" type="number" min="0" step="1" placeholder="예: 4900" required>
+              </label>
+
+              <label>결제 주기
+                <select name="period">
+                  <option value="월">월간</option>
+                  <option value="연">연간</option>
+                  <option value="무료">무료</option>
+                </select>
+              </label>
+            </div>
+
+            <label>주요 혜택
+              <textarea name="benefits" rows="3" placeholder="예: 쇼핑 적립, 콘텐츠 이용 등"></textarea>
+            </label>
+
+            <label>메모 / 이용 조건
+              <input name="memo" placeholder="예: 현대카드 혜택으로 무료 이용">
+            </label>
+
+            <button class="primary-button" type="submit">멤버십 등록하기</button>
+          </form>
+
+          <div class="membership-list">
+            ${records.memberships.length ? records.memberships.map(item => `
+              <article class="membership-item">
+                <div class="benefit-card-title">
+                  <strong>${esc(item.name)}</strong>
+                  <button class="ghost" data-delete-membership="${esc(item.id)}">삭제</button>
+                </div>
+                <p class="membership-fee">
+                  ${item.period === "무료" ? "무료" : money(item.fee) + "원 / " + (item.period === "연" ? "연" : "월")}
+                </p>
+                ${item.benefits ? `<p>${esc(item.benefits)}</p>` : ""}
+                ${item.memo ? `<small>${esc(item.memo)}</small>` : ""}
+              </article>
+            `).join("") : `
+              <p class="benefit-empty">등록된 멤버십이 없어.</p>
+            `}
+          </div>
+        </section>
+      </main>
+    `;
+
+    document.querySelector("#cardsBack").onclick = renderHome;
+
+    document.querySelector("#cardForm").onsubmit = async event => {
+      event.preventDefault();
+
+      const form = new FormData(event.target);
+      const name = String(form.get("name") || "").trim();
+
+      if (!name) return;
+
+      records.cards.push({
+        id: String(Date.now()),
+        name,
+        benefits: []
+      });
+
+      await saveAndRender("카드를 등록했어!");
+    };
+
+    document.querySelector("#benefitForm").onsubmit = async event => {
+      event.preventDefault();
+
+      const form = new FormData(event.target);
+      const card = records.cards.find(item => item.id === form.get("cardId"));
+
+      if (!card) {
+        return showMessage("먼저 카드를 등록하고 선택해 줘.");
+      }
+
+      const name = String(form.get("name") || "").trim();
+      if (!name) return;
+
+      card.benefits.push({
+        id: String(Date.now()),
+        name,
+        rate: form.get("rate") || "",
+        monthlyCap: form.get("monthlyCap") || "",
+        condition: String(form.get("condition") || "").trim(),
+        memo: String(form.get("memo") || "").trim(),
+        usedByMonth: {}
+      });
+
+      await saveAndRender("카드 혜택을 등록했어!");
+    };
+
+    document.querySelector("#membershipForm").onsubmit = async event => {
+      event.preventDefault();
+
+      const form = new FormData(event.target);
+      const name = String(form.get("name") || "").trim();
+
+      if (!name) return;
+
+      records.memberships.push({
+        id: String(Date.now()),
+        name,
+        fee: Number(form.get("fee") || 0),
+        period: form.get("period"),
+        benefits: String(form.get("benefits") || "").trim(),
+        memo: String(form.get("memo") || "").trim()
+      });
+
+      await saveAndRender("멤버십을 등록했어!");
+    };
+
+    document.querySelectorAll("[data-benefit-usage]").forEach(input => {
+      input.addEventListener("change", async () => {
+        const benefitId = input.dataset.benefitUsage;
+        const value = Math.max(0, Number(input.value || 0));
+
+        for (const card of records.cards) {
+          const benefit = card.benefits?.find(item => item.id === benefitId);
+
+          if (benefit) {
+            benefit.usedByMonth = benefit.usedByMonth || {};
+            benefit.usedByMonth[currentMonth] = value;
+            break;
+          }
+        }
+
+        await saveAndRender("이번 달 할인 사용액을 저장했어!");
+      });
+    });
+
+    document.querySelectorAll("[data-delete-card]").forEach(button => {
+      button.onclick = async () => {
+        if (!confirm("이 카드와 등록된 혜택을 삭제할까?")) return;
+
+        records.cards = records.cards.filter(
+          item => item.id !== button.dataset.deleteCard
+        );
+
+        await saveAndRender("카드를 삭제했어.");
+      };
+    });
+
+    document.querySelectorAll("[data-delete-benefit]").forEach(button => {
+      button.onclick = async () => {
+        if (!confirm("이 혜택을 삭제할까?")) return;
+
+        for (const card of records.cards) {
+          card.benefits = (card.benefits || []).filter(
+            item => item.id !== button.dataset.deleteBenefit
+          );
+        }
+
+        await saveAndRender("혜택을 삭제했어.");
+      };
+    });
+
+    document.querySelectorAll("[data-delete-membership]").forEach(button => {
+      button.onclick = async () => {
+        if (!confirm("이 멤버십을 삭제할까?")) return;
+
+        records.memberships = records.memberships.filter(
+          item => item.id !== button.dataset.deleteMembership
+        );
+
+        await saveAndRender("멤버십을 삭제했어.");
+      };
+    });
+  }
+
+  render();
+}
 
 async function openHotDeals() {
   const key = "hot-deals";
