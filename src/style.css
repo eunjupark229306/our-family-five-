@@ -826,3 +826,59 @@ button.ghost, .ghost {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* 여러 카드 혜택 입력 */
+.benefit-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.benefit-summary-grid > div {
+  padding: 13px;
+  border-radius: 14px;
+  background: #f8f5fc;
+}
+
+.benefit-summary-grid small {
+  display: block;
+  color: #898098;
+  font-size: 12px;
+}
+
+.benefit-summary-grid b {
+  display: block;
+  margin-top: 7px;
+  color: #76609e;
+  font-size: 18px;
+}
+
+.benefit-entry-row {
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid #eee8f5;
+  border-radius: 16px;
+  background: #fcfbfe;
+}
+
+.benefit-entry-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  color: #514766;
+}
+
+#addBenefitRow {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 380px) {
+  .benefit-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
