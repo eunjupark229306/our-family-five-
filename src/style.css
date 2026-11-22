@@ -1118,3 +1118,77 @@ button.ghost, .ghost {
   }
 }
 
+/* ===== 혜택별 접기 / 펼치기 ===== */
+.page-section:has(.card-list) .benefit-entry-row {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+}
+
+.page-section:has(.card-list) .benefit-accordion-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+  background: #fff;
+}
+
+.page-section:has(.card-list) .benefit-accordion-summary::-webkit-details-marker {
+  display: none;
+}
+
+.page-section:has(.card-list) .benefit-accordion-summary::after {
+  content: "＋";
+  color: #827b91;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.page-section:has(.card-list) .benefit-entry-row[open] > .benefit-accordion-summary::after {
+  content: "−";
+}
+
+.page-section:has(.card-list) .benefit-accordion-title {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.page-section:has(.card-list) .benefit-accordion-title small {
+  color: #817b8b;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+.page-section:has(.card-list) .benefit-accordion-remaining {
+  color: #6d638d;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.page-section:has(.card-list) .benefit-accordion-content {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #eeeaf3;
+  background: #fcfbfe;
+}
+
+@media (max-width: 600px) {
+  .page-section:has(.card-list) .benefit-accordion-summary {
+    padding: 13px;
+    gap: 8px;
+  }
+
+  .page-section:has(.card-list) .benefit-accordion-content {
+    padding: 13px;
+  }
+
+  .page-section:has(.card-list) .benefit-accordion-title small {
+    font-size: 11px;
+  }
+}
