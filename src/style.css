@@ -633,3 +633,196 @@ button.ghost, .ghost {
   color: #92899f;
   font-size: 13px;
 }
+
+/* ===== 카드 / 멤버십 화면 ===== */
+
+.benefit-summary {
+  margin: 18px 0;
+  background: linear-gradient(135deg, #f8f4ff, #fff);
+  border: 1px solid #eee8f5;
+}
+
+.benefit-summary p {
+  margin: 0 0 8px;
+  color: #958ba5;
+  font-size: 13px;
+}
+
+.benefit-summary strong {
+  display: block;
+  color: #514766;
+  font-size: 24px;
+}
+
+.benefit-summary small {
+  display: block;
+  margin-top: 8px;
+  color: #898098;
+}
+
+.benefit-section {
+  margin-top: 18px;
+}
+
+.benefit-section h2 {
+  color: #514766;
+  font-size: 19px;
+  margin: 0 0 12px;
+}
+
+.benefit-section > p {
+  color: #898098;
+  font-size: 13px;
+}
+
+.benefit-section form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.benefit-section label {
+  display: block;
+  color: #655d72;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.benefit-section input,
+.benefit-section select,
+.benefit-section textarea {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  padding: 12px;
+  border: 1px solid #e9e4f0;
+  border-radius: 13px;
+  background: #fff;
+  color: #514766;
+  font: inherit;
+  font-size: 14px;
+}
+
+.benefit-section textarea {
+  resize: vertical;
+}
+
+.benefit-section .primary-button {
+  width: 100%;
+  margin-top: 5px;
+}
+
+.benefit-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.benefit-list,
+.membership-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.benefit-card,
+.membership-item {
+  padding: 16px;
+  border: 1px solid #eee8f5;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.benefit-card-title,
+.benefit-item-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.benefit-card-title strong,
+.benefit-item-heading strong {
+  color: #514766;
+  font-size: 15px;
+}
+
+.benefit-card-content {
+  margin-top: 14px;
+}
+
+.benefit-item {
+  padding: 14px 0;
+  border-top: 1px solid #f0edf4;
+}
+
+.benefit-item:first-child {
+  border-top: 0;
+}
+
+.benefit-item p,
+.membership-item p {
+  margin: 7px 0;
+  color: #827b8e;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.benefit-usage {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #f8f5fc;
+}
+
+.benefit-remaining {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #827b8e;
+  font-size: 13px;
+}
+
+.benefit-remaining strong {
+  color: #76609e;
+  font-size: 16px;
+}
+
+.benefit-history {
+  margin-top: 12px;
+  color: #827b8e;
+  font-size: 12px;
+}
+
+.benefit-history summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.benefit-empty {
+  padding: 16px;
+  border-radius: 14px;
+  background: #f8f5fc;
+  color: #958ba5;
+  font-size: 13px;
+  text-align: center;
+}
+
+.membership-item .membership-fee {
+  color: #76609e;
+  font-weight: 700;
+}
+
+.membership-item small {
+  color: #958ba5;
+  font-size: 12px;
+}
+
+@media (max-width: 380px) {
+  .benefit-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
