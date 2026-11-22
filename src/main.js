@@ -20,8 +20,7 @@ const sections = [
   ["🔥", "핫딜정리", "우리 가족 알뜰 쇼핑 기록"],
   ["💰", "가계부", "가족의 수입과 지출"],
   ["🏡", "집안 관리", "우리 집 할 일과 관리"]
-  if (title === "카드/멤버십") return openCardsMembership();
-];
+
 
 
 const institutionTypes = ["어린이집", "유치원", "초등학교", "중학교", "고등학교", "기타"];
@@ -174,6 +173,7 @@ async function openSection(title) {
   if (title === "장보기 / 냉장고 재료") return openShoppingFridge();
   if (title === "집안 관리") return openHouseholdManagement();
   if (title === "핫딜정리") return openHotDeals();
+  if (title === "카드/멤버십") return openCardsMembership();
   if (title === "가계부") return openBudget();
 
   const data = await loadSection(title);
