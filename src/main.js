@@ -14,7 +14,6 @@ let currentFamilyId = null;
 
 
 const sections = [
-const sections = [
   ["🍚", "식단 & 급식표", "이번 달 식단과 급식표"],
   ["🛒", "장보기 / 냉장고 재료", "재료와 장보기 목록"],
   ["📏", "아이들 성장", "아이들의 키와 몸무게"],
